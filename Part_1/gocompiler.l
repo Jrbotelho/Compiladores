@@ -25,14 +25,14 @@ invalid_escape                  \\[^nrft]
 
 %X STRLIT OCTAL HEX DEC LINE_COMMENT COMMENT
 %%
-                                /* Reserved declared words  */
+                                /* Reserved declared    */
                                 
 ("package")|("return")|("for")  |
 ("func")|("if")|("else")        |
 ("var")|("int")|("float32")     |
 ("bool")|("string")             {fprintf(yyout, "%s\n", atoupper(yytext)); column += yyleng;}
 
-                                /*  Reserved undeclared words   */
+                                /*  Reserved undeclared */
 
 ("break")|("default")|("case")  |
 ("interface")|("select")        |
