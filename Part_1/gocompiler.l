@@ -8,7 +8,7 @@ expo                            [Ee]{num}+([+-])?
 float                           {num}*\.{num}*({num}{expo})?
 num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
-invalid_escape                  \\[^nrft]
+invalid_escape                  \\[^nrft\\\"]
 
 %{
     #include <ctype.h>
@@ -26,7 +26,7 @@ invalid_escape                  \\[^nrft]
 %X STRLIT OCTAL HEX DEC LINE_COMMENT COMMENT
 %%
                                 /* Reserved declared    */
-                                
+
 ("package")|("return")|("for")  |
 ("func")|("if")|("else")        |
 ("var")|("int")|("float32")     |
@@ -51,7 +51,7 @@ invalid_escape                  \\[^nrft]
 
 "fmt.Println"                   {fprintf(yyout, "PRINT\n"); column += yyleng;}
 "strconv.Atoi"                  {fprintf(yyout, "PARSEINT\n"); column += yyleng;}
-"os.Args"                       {fprintf(yyout, "CMDARGS\n"); column += yyleng;}                       
+"os.Args"                       {fprintf(yyout, "CMDARGS\n"); column += yyleng;}
 \,                              {fprintf(yyout, "COMMA\n"); column += yyleng;}
 [^{letter}]\_[^{letter}]        {fprintf(yyout, "BLANKID\n"); column += yyleng;}
 \;                              {fprintf(yyout, "SEMICOLON\n"); column += yyleng;}
@@ -85,24 +85,24 @@ invalid_escape                  \\[^nrft]
                                 /*  Numbers and literals    */
 
 \"                              {
-                                    BEGIN STRLIT; 
-                                    fprintf(yyout, "STRLIT("); 
+                                    BEGIN STRLIT;
+                                    fprintf(yyout, "STRLIT(");
                                     column += yyleng;
                                     in_literal = 1;
                                     ly = line, lx = column;
                                 }
 [+-]?0(X|x){hex}                {
-                                    BEGIN HEX; 
-                                    fprintf(yyout, "INTLIT(%s0x", yytext[0] == '-'? "-" : ""); 
+                                    BEGIN HEX;
+                                    fprintf(yyout, "INTLIT(%s0x", yytext[0] == '-'? "-" : "");
                                     column += yyleng-1; yyless(yyleng-1);}
 [+-]?0[0-7]                     {
-                                    BEGIN OCTAL; 
+                                    BEGIN OCTAL;
                                     fprintf(yyout, "INTLIT(%s0", yytext[0] == '-' ? "-" : "");
                                     column += yyleng-1; yyless(yyleng-1);
                                 }
 [+-]?{num}                      {
                                     BEGIN DEC;
-                                    fprintf(yyout, "INTLIT(%s", yytext[0] == '-' ? "-" : ""); 
+                                    fprintf(yyout, "INTLIT(%s", yytext[0] == '-' ? "-" : "");
                                     column += yyleng-1; yyless(yyleng-1);
                                 }
 {letter}{alphanum}*             {fprintf(yyout, "ID(%s)\n", yytext); column += yyleng;}
@@ -134,14 +134,16 @@ invalid_escape                  \\[^nrft]
                                 column += yyleng;}
 
                                 /*  Str Literal */
+
 <STRLIT>{invalid_escape}        {
                                     printf("Line %d, column %d: invalid escape sequence (%c)\n",
                                     line, column++, yytext[yyleng-1]);
                                     yyless(1);
                                 }
-<STRLIT>[^\n\r\"]               {ECHO; column += yyleng;}
+<STRLIT>\\.                     {ECHO; column += yyleng;}
 <STRLIT>\"                      {BEGIN 0; fprintf(yyout, ")\n"); column += yyleng; in_literal = 0;}
 <STRLIT>\n                      {line++;column = 1;}
+<STRLIT>.                       {ECHO; column += yyleng;}
 
                                 /* Line Comment */
 
@@ -152,7 +154,7 @@ invalid_escape                  \\[^nrft]
 
 <COMMENT>\*\/                   {BEGIN 0; fprintf(yyout, "%s\n", yytext); column += yyleng; in_comment = 0;}
 <COMMENT>.                      {ECHO; column += yyleng;}
-<COMMENT>\n                     {ECHO; line++; column = 1;}    
+<COMMENT>\n                     {ECHO; line++; column = 1;}
 %%
 
 int main()
