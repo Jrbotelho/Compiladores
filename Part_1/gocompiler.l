@@ -53,7 +53,7 @@ invalid_escape                  \\[^nrft]
 "strconv.Atoi"                  {fprintf(yyout, "PARSEINT\n"); column += yyleng;}
 "os.Args"                       {fprintf(yyout, "CMDARGS\n"); column += yyleng;}                       
 \,                              {fprintf(yyout, "COMMA\n"); column += yyleng;}
-\_" "                           {fprintf(yyout, "BLANKID\n"); column += yyleng;}
+[^{letter}]\_[^{letter}]        {fprintf(yyout, "BLANKID\n"); column += yyleng;}
 \;                              {fprintf(yyout, "SEMICOLON\n"); column += yyleng;}
 \=                              {fprintf(yyout, "ASSIGN\n"); column += yyleng;}
 \*                              {fprintf(yyout, "STAR\n"); column += yyleng;}
