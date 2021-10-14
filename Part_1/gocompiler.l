@@ -79,8 +79,8 @@ invalid_escape                  \\[^nrft\\\"]
 
                                 /* Comments */
 
-\/\/                            {BEGIN LINE_COMMENT; ECHO; column += yyleng;}
-\/\*                            {BEGIN COMMENT; ECHO; in_comment = 1; x = column, y = line;}
+\/\/                            {BEGIN LINE_COMMENT; column += yyleng;}
+\/\*                            {BEGIN COMMENT; in_comment = 1; x = column, y = line;}
 
                                 /*  Numbers and literals    */
 
@@ -147,19 +147,19 @@ invalid_escape                  \\[^nrft\\\"]
 
                                 /* Line Comment */
 
-<LINE_COMMENT>[^\n\r]           {ECHO; column += yyleng;}
-<LINE_COMMENT>\n              {BEGIN 0; fprintf(yyout, "\n"); column = 1; line++;}
+<LINE_COMMENT>[^\n\r]           {column += yyleng;}
+<LINE_COMMENT>\n              {BEGIN 0; column = 1; line++;}
 
                                 /*  Comment */
 
-<COMMENT>\*\/                   {BEGIN 0; fprintf(yyout, "%s\n", yytext); column += yyleng; in_comment = 0;}
-<COMMENT>.                      {ECHO; column += yyleng;}
-<COMMENT>\n                     {ECHO; line++; column = 1;}
+<COMMENT>\*\/                   {BEGIN 0; column += yyleng; in_comment = 0;}
+<COMMENT>.                      {column += yyleng;}
+<COMMENT>\n                     {line++; column = 1;}
 %%
 
 int main()
 {
-FILE* f = fopen("texto.txt", "r");
+FILE* f = fopen("../testes/comments_2.dgo", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
 yyout = f2;
 yyin = f;

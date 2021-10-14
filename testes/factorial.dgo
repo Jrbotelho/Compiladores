@@ -1,0 +1,30 @@
+package main;
+
+func factorial(n int) int {
+    if n == 0 {
+        return 1;
+    };
+    return n * factorial(n-1);
+};
+
+func main() {
+    var argument int;
+    argument,_ = strconv.Atoi(os.Args[1]);
+    fmt.Println(factorial(argument));
+<<<<<<< HEAD
+=======
+<<<<<<<< HEAD:tests/meta1/factorial.dgo
+========
+    a >= b;
+    int c = 0X129012; //ola
+    int d = 0xAF123;
+    /* conseguir
+    fazer
+    algo */
+    int e = 0x16th12;
+    int f = 00123;
+    int g = 07625189a;
+    str h = "ola\n"
+>>>>>>>> 7dd39264b2c6f1b943abb3125a5dd6db366d15b1:tests/factorial.dgo
+>>>>>>> 7dd39264b2c6f1b943abb3125a5dd6db366d15b1
+};

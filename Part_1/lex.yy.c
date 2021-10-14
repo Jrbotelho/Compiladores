@@ -1165,12 +1165,12 @@ YY_RULE_SETUP
 case 44:
 YY_RULE_SETUP
 #line 83 "gocompiler.l"
-{BEGIN LINE_COMMENT; ECHO; column += yyleng;}
+{BEGIN LINE_COMMENT; column += yyleng;}
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
 #line 84 "gocompiler.l"
-{BEGIN COMMENT; ECHO; in_comment = 1; x = column, y = line;}
+{BEGIN COMMENT; in_comment = 1; x = column, y = line;}
 	YY_BREAK
 /*  Numbers and literals    */
 case 46:
@@ -1322,30 +1322,30 @@ YY_RULE_SETUP
 case 69:
 YY_RULE_SETUP
 #line 151 "gocompiler.l"
-{ECHO; column += yyleng;}
+{column += yyleng;}
 	YY_BREAK
 case 70:
 /* rule 70 can match eol */
 YY_RULE_SETUP
 #line 152 "gocompiler.l"
-{BEGIN 0; fprintf(yyout, "\n"); column = 1; line++;}
+{BEGIN 0; column = 1; line++;}
 	YY_BREAK
 /*  Comment */
 case 71:
 YY_RULE_SETUP
 #line 156 "gocompiler.l"
-{BEGIN 0; fprintf(yyout, "%s\n", yytext); column += yyleng; in_comment = 0;}
+{BEGIN 0; column += yyleng; in_comment = 0;}
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
 #line 157 "gocompiler.l"
-{ECHO; column += yyleng;}
+{column += yyleng;}
 	YY_BREAK
 case 73:
 /* rule 73 can match eol */
 YY_RULE_SETUP
 #line 158 "gocompiler.l"
-{ECHO; line++; column = 1;}
+{line++; column = 1;}
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
@@ -2371,7 +2371,7 @@ void yyfree (void * ptr )
 
 int main()
 {
-FILE* f = fopen("texto.txt", "r");
+FILE* f = fopen("../testes/comments_2.dgo", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
 yyout = f2;
 yyin = f;
