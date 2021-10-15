@@ -112,9 +112,9 @@ whitespace                      [ \t\f\s]
 
                                 /*  Regular lines   */
 
-{whitespace}                    {ECHO; column ++;}
+{whitespace}                    {column++;}
 \n                              {line++;column = 1;}
-.                               {printf("Line %d, column %d: illegal character (%d)\n", line, column++, yytext[0]);}
+.                               {printf("Line %d, column %d: illegal character (%c)\n", line, column++, yytext[0]);}
 
                                 /*  Hex */
 
@@ -160,10 +160,14 @@ whitespace                      [ \t\f\s]
 
 int main()
 {
+FILE* f = fopen("../testes/comments_1.dgo", "r");
+if (f == NULL) printf("wtf????\n");
+yyin = f;
 //FILE* f2 = fopen("texto_output.txt", "w");
 //yyout = f2;
 yylex();
 //fclose(f2);
+fclose(f);
 if (in_literal) printf("Line %d, column %d: unterminated literal\n", ly, lx);
 if (in_comment) printf("Line %d, column %d: unterminated comment\n", y, x);
 return 0;
