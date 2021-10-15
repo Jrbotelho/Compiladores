@@ -160,9 +160,6 @@ whitespace                      [ \t\f\s]
 
 int main()
 {
-FILE* f = fopen("../testes/comments_1.dgo", "r");
-if (f == NULL) printf("wtf????\n");
-yyin = f;
 //FILE* f2 = fopen("texto_output.txt", "w");
 //yyout = f2;
 yylex();
