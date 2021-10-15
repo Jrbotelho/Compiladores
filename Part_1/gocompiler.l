@@ -9,6 +9,7 @@ float                           {num}*\.{num}*({num}{expo})?
 num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
 invalid_escape                  \\[^nrft\\\"]
+whitespace                      [ \t\f\s]
 
 %{
     #include <ctype.h>
@@ -111,8 +112,9 @@ invalid_escape                  \\[^nrft\\\"]
 
                                 /*  Regular lines   */
 
+{whitespace}                    {ECHO; column ++;}
 \n                              {line++;column = 1;}
-.                               {column++;}
+.                               {printf("Line %d, column %d: illegal character (%d)\n", line, column++, yytext[0]);}
 
                                 /*  Hex */
 
@@ -138,11 +140,10 @@ invalid_escape                  \\[^nrft\\\"]
 <STRLIT>{invalid_escape}        {
                                     printf("Line %d, column %d: invalid escape sequence (%c)\n",
                                     line, column++, yytext[yyleng-1]);
-                                    yyless(1);
                                 }
 <STRLIT>\\.                     {ECHO; column += yyleng;}
 <STRLIT>\"                      {BEGIN 0; fprintf(yyout, ")\n"); column += yyleng; in_literal = 0;}
-<STRLIT>\n                      {line++;column = 1;}
+<STRLIT>\n                      {ECHO; line++;column = 1;}
 <STRLIT>.                       {ECHO; column += yyleng;}
 
                                 /* Line Comment */
@@ -159,18 +160,14 @@ invalid_escape                  \\[^nrft\\\"]
 
 int main()
 {
-FILE* f = fopen("../testes/comments_2.dgo", "r");
-FILE* f2 = fopen("texto_output.txt", "w");
-yyout = f2;
-yyin = f;
+//FILE* f2 = fopen("texto_output.txt", "w");
+//yyout = f2;
 yylex();
-fclose(f);
-fclose(f2);
+//fclose(f2);
 if (in_literal) printf("Line %d, column %d: unterminated literal\n", ly, lx);
 if (in_comment) printf("Line %d, column %d: unterminated comment\n", y, x);
 return 0;
 }
-
 int yywrap()
 {
 return 1;
