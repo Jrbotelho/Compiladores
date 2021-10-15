@@ -16,6 +16,7 @@ whitespace                      [ \t\f\s]
 %{
     #include <ctype.h>
     #include <stdbool.h>
+    #include <stdlib.h>
     #include <string.h>
     int line = 1, column = 1;
     int x = 0, y = 0;
@@ -24,11 +25,24 @@ whitespace                      [ \t\f\s]
     char octal[100];
     int octalPos = 0;
     bool octalError = false;
+    bool semicolon = false;
+
+    char* trim_whitespace(char* string){
+      char* output =  (char*)malloc(strlen(string)*sizeof(char));
+      int i = -1;
+      while(!isspace(string[++i])) output[i] = string[i];
+      output[i] = 0;
+      return output;
+    }
 
     bool in_comment = 0, in_literal = 0;
     char* atoupper(char* str){
         for (int i = 0; str[i] != 0; i++) str[i] = toupper(str[i]);
         return str;
+    }
+
+    void validOctal(char n){
+       if (!octalError) octalError = !(n >= '0' && n <= '7');
     }
 
     void addOctal(char c){
@@ -56,6 +70,7 @@ whitespace                      [ \t\f\s]
 %%
                                 /* Reserved declared    */
 
+"return"{whitespace}*\n         {fprintf(yyout, "RETURN\nSEMICOLON\n"); yyless(yyleng-1);}
 ("package")|("return")|("for")  |
 ("func")|("if")|("else")        |
 ("var")|("int")|("float32")     |
@@ -96,10 +111,13 @@ whitespace                      [ \t\f\s]
 \<\=                            {fprintf(yyout, "LE\n"); column += yyleng;}
 \<                              {fprintf(yyout, "LT\n"); column += yyleng;}
 \{                              {fprintf(yyout, "LBRACE\n"); column += yyleng;}
+\}{whitespace}*\n               {fprintf(yyout, "RBRACE\nSEMICOLON\n"); yyless(yyleng-1);}
 \}                              {fprintf(yyout, "RBRACE\n"); column += yyleng;}
 \[                              {fprintf(yyout, "LSQ\n"); column += yyleng;}
+\]{whitespace}*\n               {fprintf(yyout, "RSQ\nSEMICOLON\n"); yyless(yyleng-1);}
 \]                              {fprintf(yyout, "RSQ\n"); column += yyleng;}
 \(                              {fprintf(yyout, "LPAR\n"); column += yyleng;}
+\){whitespace}*\n               {fprintf(yyout, "RPAR\nSEMICOLON\n");}
 \)                              {fprintf(yyout, "RPAR\n"); column += yyleng;}
 \%                              {fprintf(yyout, "MOD\n"); column += yyleng;}
 \!\=                            {fprintf(yyout, "NE\n"); column += yyleng;}
@@ -128,7 +146,10 @@ whitespace                      [ \t\f\s]
                                     fprintf(yyout, "INTLIT(%s", yytext);
                                     yytext[yyleng-1] = x;
                                     column += yyleng-1; yyless(yyleng-1);}
-
+{float}{whitespace}*\n          {
+                                    fprintf(yyout, "REALLIT(%s)\nSEMICOLON\n",
+                                            trim_whitespace(yytext));
+                                    yyless(yyleng-1);}
 {float}                         {fprintf(yyout, "REALLIT(%s)\n", yytext); column += yyleng;}
 0{num}                          {
                                     BEGIN OCTAL;
@@ -137,8 +158,13 @@ whitespace                      [ \t\f\s]
                                 }
 {num}                           {
                                     BEGIN DEC;
-                                    fprintf(yyout, "INTLIT(%s", yytext[0] == '-' ? "-" : "");
+                                    fprintf(yyout, "INTLIT(");
                                     column += yyleng-1; yyless(yyleng-1);
+                                }
+{letter}{alphanum}*\n           {
+                                    yytext[yyleng-1] = 0;
+                                    fprintf(yyout, "ID(%s)\nSEMICOLON\n", yytext);
+                                    yytext[yyleng-1] = '\n'; ; yyless(yyleng-1);
                                 }
 {letter}{alphanum}*             {fprintf(yyout, "ID(%s)\n", yytext); column += yyleng;}
 
@@ -146,29 +172,47 @@ whitespace                      [ \t\f\s]
 
 {whitespace}                    {column+=yyleng;}
 \n|(\r\n)                       {line++;column = 1;}
-.                               {fprintf(yyout, "Line %d, column %d: illegal character (%c)\n", line, column+=yyleng, yytext[0]);}
+.                               {
+                                fprintf(yyout, "Line %d, column %d: illegal character (%c)\n",
+                                        line, column+=yyleng, yytext[0]);
+                                }
 
                                 /*  Hex */
 
+<HEX>{hex}{whitespace}*\n       {fprintf(yyout, "%c", yytext[0]); semicolon = true; yyless(yyleng-1);}
 <HEX>{hex}                      {ECHO;column+=yyleng;}
-<HEX>.                          {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
+<HEX>.|\n                       {
+                                    fprintf(yyout, ")\n");
+                                    if (semicolon) fprintf(yyout, "SEMICOLON\n");
+                                    BEGIN 0; yyless(0);
+                                    semicolon = false;
+                                }
 
                                 /*  Dec */
 
+<DEC>{num}{whitespace}*\n       {fprintf(yyout, "%c", yytext[0]); semicolon = true; yyless(yyleng-1);}
 <DEC>{num}                      {ECHO; column+=yyleng;}
-<DEC>.                          {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
+<DEC>.|\n                       {
+                                    fprintf(yyout, ")\n");
+                                    if (semicolon) fprintf(yyout, "SEMICOLON\n");
+                                    BEGIN 0; yyless(0);
+                                    semicolon = false;
+                                }
 
                                 /*  Octal   */
 
-<OCTAL>[0-7]                    {addOctal(yytext[0]);column+=yyleng;}
-<OCTAL>8|9                      {addOctal(yytext[0]);column+=yyleng;octalError = true;}
-<OCTAL>.                        {
+<OCTAL>[0-9]{whitespace}*\n     {addOctal(yytext[0]); validOctal(yytext[0]); yyless(yyleng-1); semicolon = true;}
+<OCTAL>[0-9]                    {addOctal(yytext[0]); validOctal(yytext[0]); column+=yyleng;}
+<OCTAL>.|\n                     {
                                 octal[octalPos] = 0;
                                 if (octalError){
                                   fprintf(yyout, "Line %d, column %d: invalid octal constant (%s)\n",
-                                         line, column - octalPos-1, octal);
+                                         line, column - octalPos + 1, octal);
                                   octalError = false;
                                 }else fprintf(yyout, "INTLIT(%s)\n", octal);
+                                if (semicolon)fprintf(yyout, "SEMICOLON\n");
+                                if (yytext[0] == '\n'){ column = 1; line++;}
+                                semicolon = false;
                                 octalPos = 0;
                                 BEGIN 0; yyless(0);
                                 }
@@ -181,6 +225,7 @@ whitespace                      [ \t\f\s]
                                     line, (column+=yyleng)-1, yytext[yyleng-1]);
                                 }
 <STRLIT>\\.                     {ECHO; column += yyleng;}
+<STRLIT>\"{whitespace}*\n       {BEGIN 0; fprintf(yyout, "\")\nSEMICOLON\n"); yyless(yyleng-1);}
 <STRLIT>\"                      {BEGIN 0; fprintf(yyout, "\")\n"); column += yyleng; in_literal = 0;}
 <STRLIT>\n                      {ECHO; line++;column = 1;}
 <STRLIT>.                       {ECHO; column += yyleng;}
