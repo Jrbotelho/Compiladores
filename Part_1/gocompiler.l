@@ -4,8 +4,10 @@ letter                          ([a-z]|[A-Z]|\_)
 num                             [0-9]
 alphanum                        {letter}|{num}
 hex                             [0-9a-fA-F]
-expo                            [Ee]{num}+([+-])?
-float                           [+-]?{num}*\.{num}*({num}{expo})?
+expo                            [eE][+-]?{num}+
+float_1                         {num}*\.{num}*({num}{expo})?
+float_2                         {num}+{expo}
+float                           {float_1}|{float_2}
 num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
 invalid_escape                  \\[^nrft\\\"]
@@ -14,37 +16,43 @@ whitespace                      [ \t\f\s]
 %{
     #include <ctype.h>
     #include <stdbool.h>
+    #include <string.h>
     int line = 1, column = 1;
     int x = 0, y = 0;
     int lx = 0, ly = 0;
+
+    char octal[100];
+    int octalPos = 0;
+    bool octalError = false;
+
     bool in_comment = 0, in_literal = 0;
     char* atoupper(char* str){
         for (int i = 0; str[i] != 0; i++) str[i] = toupper(str[i]);
         return str;
     }
+
+    void addOctal(char c){
+      octal[octalPos++] = c;
+    }
+
+    bool textComparer(FILE* f1, FILE* f2){
+      int pos = 0;
+      printf("started comparing...\n");
+      while(f1 != NULL && f2 != NULL){
+        char a = fgetc(f1);
+        char b = fgetc(f2);
+        if (a != b){
+          printf("ERROR ON POS %d\na = %c\tb = %c\n", pos, a, b);
+          return 0;
+        }
+        pos++;
+      }
+      return (f1 != NULL || f2 != NULL);
+    }
 %}
 
 %X STRLIT OCTAL HEX DEC LINE_COMMENT COMMENT
 %%
-                                /*  Number declarations */
-[+-]?0(X|x){hex}                {
-                                    BEGIN HEX;
-                                    fprintf(yyout, "INTLIT(%s0x", yytext[0] == '-'? "-" : "");
-                                    column += yyleng-1; yyless(yyleng-1);}
-[+-]?0[0-7]                     {
-                                    BEGIN OCTAL;
-                                    fprintf(yyout, "INTLIT(%s0", yytext[0] == '-' ? "-" : "");
-                                    column += yyleng-1; yyless(yyleng-1);
-                                }
-[+-]?{num}                      {
-                                    BEGIN DEC;
-                                    fprintf(yyout, "INTLIT(%s", yytext[0] == '-' ? "-" : "");
-                                    column += yyleng-1; yyless(yyleng-1);
-                                }
-^{float}                        {fprintf(yyout, "REALINT(%s)\n", yytext); column += yyleng;}
-{whitespace}{float}             {fprintf(yyout, "REALINT(%s)\n", &yytext[1]); column += yyleng;}
-
-
                                 /* Reserved declared    */
 
 ("package")|("return")|("for")  |
@@ -58,14 +66,14 @@ whitespace                      [ \t\f\s]
 ("interface")|("select")        |
 ("defer")|("go")|("map")        |
 ("struct")|("chan")|("goto")    |
-("switch")|("const")            |
+("switch")|("const")|("import") |
 ("fallthrough")|("range")       |
 ("type")|("continue")           |
 (\&\=)|\||(\-\=)|(\|\=)         |
 \^|(\*\=)|(\^\=)|(\<\-)         |
-(\<\<)|(\>\>)|(\<\<\=)          |
+(\<\<)|(\>\>)|(\<\<\=)|(\+\+)   |
 (\:\=)|(\%\=)|(\>\>\=)          |
-(\-\-)|(\.\.\.)|(\:)|(\&\^\=?)  {fprintf(yyout, "RESERVED\n"); column += yyleng;}
+(\-\-)|(\.\.\.)|(\&\^\=?)       {fprintf(yyout, "RESERVED(%s)\n", yytext); column += yyleng;}
 
                                 /*  Args and puncts */
 
@@ -73,7 +81,7 @@ whitespace                      [ \t\f\s]
 "strconv.Atoi"                  {fprintf(yyout, "PARSEINT\n"); column += yyleng;}
 "os.Args"                       {fprintf(yyout, "CMDARGS\n"); column += yyleng;}
 \,                              {fprintf(yyout, "COMMA\n"); column += yyleng;}
-[^{letter}]\_[^{letter}]        {fprintf(yyout, "BLANKID\n"); column += yyleng;}
+\_[^{letter}]                   {fprintf(yyout, "BLANKID\n"); column += yyleng; yyless(1);}
 \;                              {fprintf(yyout, "SEMICOLON\n"); column += yyleng;}
 \=                              {fprintf(yyout, "ASSIGN\n"); column += yyleng;}
 \*                              {fprintf(yyout, "STAR\n"); column += yyleng;}
@@ -106,45 +114,72 @@ whitespace                      [ \t\f\s]
 
 \"                              {
                                     BEGIN STRLIT;
-                                    fprintf(yyout, "STRLIT(");
+                                    fprintf(yyout, "STRLIT(\"");
                                     column += yyleng;
                                     in_literal = 1;
                                     ly = line, lx = column;
                                 }
+0(X|x){hex}                     {
+                                    BEGIN HEX;
+                                    char x = yytext[yyleng-1];
+                                    yytext[yyleng-1] = 0;
+                                    fprintf(yyout, "INTLIT(%s", yytext);
+                                    yytext[yyleng-1] = x;
+                                    column += yyleng-1; yyless(yyleng-1);}
+
+{float}                         {fprintf(yyout, "REALLIT(%s)\n", yytext); column += yyleng;}
+0{num}                          {
+                                    BEGIN OCTAL;
+                                    addOctal('0');
+                                    column += yyleng-1; yyless(yyleng-1);
+                                }
+{num}                           {
+                                    BEGIN DEC;
+                                    fprintf(yyout, "INTLIT(%s", yytext[0] == '-' ? "-" : "");
+                                    column += yyleng-1; yyless(yyleng-1);
+                                }
 {letter}{alphanum}*             {fprintf(yyout, "ID(%s)\n", yytext); column += yyleng;}
+
                                 /*  Regular lines   */
 
 {whitespace}                    {column++;}
-\n                              {line++;column = 1;}
-.                               {printf("Line %d, column %d: illegal character (%c)\n", line, column++, yytext[0]);}
+\n|(\r\n)                       {line++;column = 1;}
+.                               {fprintf(yyout, "Line %d, column %d: illegal character (%c)\n", line, column++, yytext[0]);}
 
                                 /*  Hex */
 
 <HEX>{hex}                      {ECHO;column++;}
 <HEX>{num_finish}|{operator}    {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
-<HEX>.                          {printf("Line %d, column %d: illegal hex constant (%c)\n", line, column++, yytext[0]);}
+<HEX>.                          {fprintf(yyout, "Line %d, column %d: illegal hex constant (%d)\n", line, column++, yytext[0]);}
 
                                 /*  Dec */
 
 <DEC>{num}                      {ECHO; column++;}
-<DEC>{num_finish}|{operator}    {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
-<DEC>.                          {printf("Line %d, column %d: illegal dec constant (%c)\n", line, column++, yytext[0]);}
+<DEC>.                          {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
 
                                 /*  Octal   */
 
-<OCTAL>[0-7]                    {ECHO;column++;}
-<OCTAL>{num_finish}|{operator}  {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
-<OCTAL>.                        {printf("Line %d, column %d: illegal octal constant (%c)\n", line, column++, yytext[0]);
-                                column += yyleng;}
+<OCTAL>[0-7]                    {addOctal(yytext[0]);column++;}
+<OCTAL>8|9                      {addOctal(yytext[0]);column++;octalError = true;}
+<OCTAL>.                        {
+                                octal[octalPos] = 0;
+                                if (octalError){
+                                  fprintf(yyout, "Line %d, column %d: invalid octal constant (%s)\n",
+                                         line, column - octalPos-1, octal);
+                                  octalError = false;
+                                }else fprintf(yyout, "INTLIT(%s)\n", octal);
+                                octalPos = 0;
+                                BEGIN 0; yyless(0);
+                                }
 
                                 /*  Str Literal */
 
 <STRLIT>{invalid_escape}        {
-                                    printf("Line %d, column %d: invalid escape sequence (%c)\n",
+                                    fprintf(yyout, "Line %d, column %d: invalid escape sequence (%c)\n",
                                     line, column++, yytext[yyleng-1]);
                                 }
 <STRLIT>\\.                     {ECHO; column += yyleng;}
-<STRLIT>\"                      {BEGIN 0; fprintf(yyout, ")\n"); column += yyleng; in_literal = 0;}
+<STRLIT>\"                      {BEGIN 0; fprintf(yyout, "\")\n"); column += yyleng; in_literal = 0;}
 <STRLIT>\n                      {ECHO; line++;column = 1;}
 <STRLIT>.                       {ECHO; column += yyleng;}
 
@@ -162,15 +197,20 @@ whitespace                      [ \t\f\s]
 
 int main()
 {
-FILE* f = fopen("../testes/comments_1.dgo", "r");
+FILE* f = fopen("../testes/text_2.dgo", "r");
+FILE* f1 = fopen("../testes/text_2.out", "r");
+FILE* f2 = fopen("texto_output.txt", "w");
 yyin = f;
-//FILE* f2 = fopen("texto_output.txt", "w");
-//yyout = f2;
+yyout = f2;
 yylex();
-//fclose(f2);
+if (in_literal) fprintf(yyout, "Line %d, column %d: unterminated literal\n", ly, lx);
+if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
+fclose(f2);
+f2 = fopen("texto_output.txt", "r");
+if (textComparer(f1, f2))printf("Works!\n");
+fclose(f2);
 fclose(f);
-if (in_literal) printf("Line %d, column %d: unterminated literal\n", ly, lx);
-if (in_comment) printf("Line %d, column %d: unterminated comment\n", y, x);
+fclose(f1);
 return 0;
 }
 int yywrap()
