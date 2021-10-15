@@ -37,17 +37,18 @@ whitespace                      [ \t\f\s]
 
     bool textComparer(FILE* f1, FILE* f2){
       int pos = 0;
+      char a = 0, b = 0;
       printf("started comparing...\n");
-      while(f1 != NULL && f2 != NULL){
-        char a = fgetc(f1);
-        char b = fgetc(f2);
+      while(a != EOF && b != EOF){
+        a = fgetc(f1);
+        b = fgetc(f2);
         if (a != b){
           printf("ERROR ON POS %d\na = %c\tb = %c\n", pos, a, b);
           return 0;
         }
         pos++;
       }
-      return (f1 != NULL || f2 != NULL);
+      return (a == EOF && b == EOF);
     }
 %}
 
@@ -70,9 +71,10 @@ whitespace                      [ \t\f\s]
 ("fallthrough")|("range")       |
 ("type")|("continue")           |
 (\&\=)|\||(\-\=)|(\|\=)         |
-\^|(\*\=)|(\^\=)|(\<\-)         |
+\^|(\*\=)|(\^\=)|(\<\-)|\&      |
 (\<\<)|(\>\>)|(\<\<\=)|(\+\+)   |
-(\:\=)|(\%\=)|(\>\>\=)          |
+(\:\=)|(\%\=)|(\>\>\=)|(\+\=)   |
+(\/\=)|(\:)                     |
 (\-\-)|(\.\.\.)|(\&\^\=?)       {fprintf(yyout, "RESERVED(%s)\n", yytext); column += yyleng;}
 
                                 /*  Args and puncts */
@@ -149,8 +151,7 @@ whitespace                      [ \t\f\s]
                                 /*  Hex */
 
 <HEX>{hex}                      {ECHO;column++;}
-<HEX>{num_finish}|{operator}    {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
-<HEX>.                          {fprintf(yyout, "Line %d, column %d: illegal hex constant (%d)\n", line, column++, yytext[0]);}
+<HEX>.                          {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
 
                                 /*  Dec */
 
@@ -175,7 +176,8 @@ whitespace                      [ \t\f\s]
                                 /*  Str Literal */
 
 <STRLIT>{invalid_escape}        {
-                                    fprintf(yyout, "Line %d, column %d: invalid escape sequence (%c)\n",
+                                    fprintf(yyout, "\")\nLine %d, column %d: invalid escape sequence (%c)\n"
+                                    "STRLIT(\"",
                                     line, column++, yytext[yyleng-1]);
                                 }
 <STRLIT>\\.                     {ECHO; column += yyleng;}
@@ -197,20 +199,25 @@ whitespace                      [ \t\f\s]
 
 int main()
 {
-FILE* f = fopen("../testes/text_2.dgo", "r");
-FILE* f1 = fopen("../testes/text_2.out", "r");
+  /*
+FILE* f = fopen("../testes/factorial.dgo", "r");
+FILE* f1 = fopen("../testes/factorial.out", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
 yyin = f;
 yyout = f2;
+*/
 yylex();
 if (in_literal) fprintf(yyout, "Line %d, column %d: unterminated literal\n", ly, lx);
 if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
+/*
 fclose(f2);
 f2 = fopen("texto_output.txt", "r");
 if (textComparer(f1, f2))printf("Works!\n");
+else printf("?\n");
 fclose(f2);
 fclose(f);
 fclose(f1);
+*/
 return 0;
 }
 int yywrap()
