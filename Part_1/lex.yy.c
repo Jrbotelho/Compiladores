@@ -1212,7 +1212,7 @@ YY_RULE_SETUP
 case 53:
 YY_RULE_SETUP
 #line 148 "gocompiler.l"
-{column++;}
+{column+=yyleng;}
 	YY_BREAK
 case 54:
 /* rule 54 can match eol */
@@ -1223,13 +1223,13 @@ YY_RULE_SETUP
 case 55:
 YY_RULE_SETUP
 #line 150 "gocompiler.l"
-{fprintf(yyout, "Line %d, column %d: illegal character (%c)\n", line, column++, yytext[0]);}
+{fprintf(yyout, "Line %d, column %d: illegal character (%c)\n", line, column+=yyleng, yytext[0]);}
 	YY_BREAK
 /*  Hex */
 case 56:
 YY_RULE_SETUP
 #line 154 "gocompiler.l"
-{ECHO;column++;}
+{ECHO;column+=yyleng;}
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
@@ -1240,7 +1240,7 @@ YY_RULE_SETUP
 case 58:
 YY_RULE_SETUP
 #line 159 "gocompiler.l"
-{ECHO; column++;}
+{ECHO; column+=yyleng;}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
@@ -1251,12 +1251,12 @@ YY_RULE_SETUP
 case 60:
 YY_RULE_SETUP
 #line 164 "gocompiler.l"
-{addOctal(yytext[0]);column++;}
+{addOctal(yytext[0]);column+=yyleng;}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
 #line 165 "gocompiler.l"
-{addOctal(yytext[0]);column++;octalError = true;}
+{addOctal(yytext[0]);column+=yyleng;octalError = true;}
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
@@ -1280,7 +1280,7 @@ YY_RULE_SETUP
 {
                                     fprintf(yyout, "\")\nLine %d, column %d: invalid escape sequence (%c)\n"
                                     "STRLIT(\"",
-                                    line, column++, yytext[yyleng-1]);
+                                    line, (column+=yyleng)-1, yytext[yyleng-1]);
                                 }
 	YY_BREAK
 case 64:

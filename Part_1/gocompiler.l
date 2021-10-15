@@ -144,24 +144,24 @@ whitespace                      [ \t\f\s]
 
                                 /*  Regular lines   */
 
-{whitespace}                    {column++;}
+{whitespace}                    {column+=yyleng;}
 \n|(\r\n)                       {line++;column = 1;}
-.                               {fprintf(yyout, "Line %d, column %d: illegal character (%c)\n", line, column++, yytext[0]);}
+.                               {fprintf(yyout, "Line %d, column %d: illegal character (%c)\n", line, column+=yyleng, yytext[0]);}
 
                                 /*  Hex */
 
-<HEX>{hex}                      {ECHO;column++;}
+<HEX>{hex}                      {ECHO;column+=yyleng;}
 <HEX>.                          {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
 
                                 /*  Dec */
 
-<DEC>{num}                      {ECHO; column++;}
+<DEC>{num}                      {ECHO; column+=yyleng;}
 <DEC>.                          {fprintf(yyout, ")\n"); BEGIN 0; yyless(0);}
 
                                 /*  Octal   */
 
-<OCTAL>[0-7]                    {addOctal(yytext[0]);column++;}
-<OCTAL>8|9                      {addOctal(yytext[0]);column++;octalError = true;}
+<OCTAL>[0-7]                    {addOctal(yytext[0]);column+=yyleng;}
+<OCTAL>8|9                      {addOctal(yytext[0]);column+=yyleng;octalError = true;}
 <OCTAL>.                        {
                                 octal[octalPos] = 0;
                                 if (octalError){
@@ -178,7 +178,7 @@ whitespace                      [ \t\f\s]
 <STRLIT>{invalid_escape}        {
                                     fprintf(yyout, "\")\nLine %d, column %d: invalid escape sequence (%c)\n"
                                     "STRLIT(\"",
-                                    line, column++, yytext[yyleng-1]);
+                                    line, (column+=yyleng)-1, yytext[yyleng-1]);
                                 }
 <STRLIT>\\.                     {ECHO; column += yyleng;}
 <STRLIT>\"                      {BEGIN 0; fprintf(yyout, "\")\n"); column += yyleng; in_literal = 0;}
