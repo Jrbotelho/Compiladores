@@ -5,7 +5,7 @@ num                             [0-9]
 alphanum                        {letter}|{num}
 hex                             [0-9a-fA-F]
 expo                            [Ee]{num}+([+-])?
-float                           {num}*\.{num}*({num}{expo})?
+float                           [+-]?{num}*\.{num}*({num}{expo})?
 num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
 invalid_escape                  \\[^nrft\\\"]
@@ -26,6 +26,25 @@ whitespace                      [ \t\f\s]
 
 %X STRLIT OCTAL HEX DEC LINE_COMMENT COMMENT
 %%
+                                /*  Number declarations */
+[+-]?0(X|x){hex}                {
+                                    BEGIN HEX;
+                                    fprintf(yyout, "INTLIT(%s0x", yytext[0] == '-'? "-" : "");
+                                    column += yyleng-1; yyless(yyleng-1);}
+[+-]?0[0-7]                     {
+                                    BEGIN OCTAL;
+                                    fprintf(yyout, "INTLIT(%s0", yytext[0] == '-' ? "-" : "");
+                                    column += yyleng-1; yyless(yyleng-1);
+                                }
+[+-]?{num}                      {
+                                    BEGIN DEC;
+                                    fprintf(yyout, "INTLIT(%s", yytext[0] == '-' ? "-" : "");
+                                    column += yyleng-1; yyless(yyleng-1);
+                                }
+^{float}                        {fprintf(yyout, "REALINT(%s)\n", yytext); column += yyleng;}
+{whitespace}{float}             {fprintf(yyout, "REALINT(%s)\n", &yytext[1]); column += yyleng;}
+
+
                                 /* Reserved declared    */
 
 ("package")|("return")|("for")  |
@@ -92,24 +111,7 @@ whitespace                      [ \t\f\s]
                                     in_literal = 1;
                                     ly = line, lx = column;
                                 }
-[+-]?0(X|x){hex}                {
-                                    BEGIN HEX;
-                                    fprintf(yyout, "INTLIT(%s0x", yytext[0] == '-'? "-" : "");
-                                    column += yyleng-1; yyless(yyleng-1);}
-[+-]?0[0-7]                     {
-                                    BEGIN OCTAL;
-                                    fprintf(yyout, "INTLIT(%s0", yytext[0] == '-' ? "-" : "");
-                                    column += yyleng-1; yyless(yyleng-1);
-                                }
-[+-]?{num}                      {
-                                    BEGIN DEC;
-                                    fprintf(yyout, "INTLIT(%s", yytext[0] == '-' ? "-" : "");
-                                    column += yyleng-1; yyless(yyleng-1);
-                                }
 {letter}{alphanum}*             {fprintf(yyout, "ID(%s)\n", yytext); column += yyleng;}
-^{float}                        {fprintf(yyout, "REALINT(%s)\n", yytext); column += yyleng;}
-" "{float}                      {fprintf(yyout, "REALINT(%s)\n", &yytext[1]); column += yyleng;}
-
                                 /*  Regular lines   */
 
 {whitespace}                    {column++;}
@@ -160,6 +162,8 @@ whitespace                      [ \t\f\s]
 
 int main()
 {
+FILE* f = fopen("../testes/comments_1.dgo", "r");
+yyin = f;
 //FILE* f2 = fopen("texto_output.txt", "w");
 //yyout = f2;
 yylex();
