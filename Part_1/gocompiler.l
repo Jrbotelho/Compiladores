@@ -1,4 +1,5 @@
     /* João Ricardo Miranda Botelho 2019155348  */
+    /* José Pedro Silvério Braz     2017247538  */
 
 letter                          ([a-z]|[A-Z]|\_)
 num                             [0-9]
@@ -18,7 +19,7 @@ whitespace                      [ \t\f\s]
     #include <stdbool.h>
     #include <stdlib.h>
     #include <string.h>
-    int line = 1, column = 1;
+    int line = 1, column = 0;
     int x = 0, y = 0;
     int lx = 0, ly = 0;
 
@@ -128,7 +129,7 @@ whitespace                      [ \t\f\s]
                                 /* Comments */
 
 \/\/                            {BEGIN LINE_COMMENT; column += yyleng;}
-\/\*                            {BEGIN COMMENT; in_comment = 1; x = column, y = line;}
+\/\*                            {BEGIN COMMENT; in_comment = 1; x = column+1, y = line; column += yyleng}
 
                                 /*  Numbers and literals    */
 
@@ -171,7 +172,7 @@ whitespace                      [ \t\f\s]
                                 /*  Regular lines   */
 
 {whitespace}                    {column+=yyleng;}
-\n|(\r\n)                       {line++;column = 1;}
+\n|(\r\n)                       {line++;column = 0;}
 .                               {
                                 fprintf(yyout, "Line %d, column %d: illegal character (%c)\n",
                                         line, column+=yyleng, yytext[0]);
@@ -204,17 +205,17 @@ whitespace                      [ \t\f\s]
 <OCTAL>[0-9]{whitespace}*\n     {addOctal(yytext[0]); validOctal(yytext[0]); yyless(yyleng-1); semicolon = true;}
 <OCTAL>[0-9]                    {addOctal(yytext[0]); validOctal(yytext[0]); column+=yyleng;}
 <OCTAL>.|\n                     {
-                                octal[octalPos] = 0;
-                                if (octalError){
-                                  fprintf(yyout, "Line %d, column %d: invalid octal constant (%s)\n",
-                                         line, column - octalPos + 1, octal);
-                                  octalError = false;
-                                }else fprintf(yyout, "INTLIT(%s)\n", octal);
-                                if (semicolon)fprintf(yyout, "SEMICOLON\n");
-                                if (yytext[0] == '\n'){ column = 1; line++;}
-                                semicolon = false;
-                                octalPos = 0;
-                                BEGIN 0; yyless(0);
+                                    octal[octalPos] = 0;
+                                    if (octalError){
+                                      fprintf(yyout, "Line %d, column %d: invalid octal constant (%s)\n",
+                                             line, column - octalPos + 1, octal);
+                                      octalError = false;
+                                    }else fprintf(yyout, "INTLIT(%s)\n", octal);
+                                    if (semicolon)fprintf(yyout, "SEMICOLON\n");
+                                    if (yytext[0] == '\n'){ column = 0; line++;}
+                                    semicolon = false;
+                                    octalPos = 0;
+                                    BEGIN 0; yyless(0);
                                 }
 
                                 /*  Str Literal */
@@ -227,34 +228,31 @@ whitespace                      [ \t\f\s]
 <STRLIT>\\.                     {ECHO; column += yyleng;}
 <STRLIT>\"{whitespace}*\n       {BEGIN 0; fprintf(yyout, "\")\nSEMICOLON\n"); yyless(yyleng-1);}
 <STRLIT>\"                      {BEGIN 0; fprintf(yyout, "\")\n"); column += yyleng; in_literal = 0;}
-<STRLIT>\n                      {ECHO; line++;column = 1;}
+<STRLIT>\n                      {ECHO; line++;column = 0;}
 <STRLIT>.                       {ECHO; column += yyleng;}
 
                                 /* Line Comment */
 
 <LINE_COMMENT>[^\n\r]           {column += yyleng;}
-<LINE_COMMENT>\n              {BEGIN 0; column = 1; line++;}
+<LINE_COMMENT>\n                {BEGIN 0; column = 0; line++;}
 
                                 /*  Comment */
 
 <COMMENT>\*\/                   {BEGIN 0; column += yyleng; in_comment = 0;}
 <COMMENT>.                      {column += yyleng;}
-<COMMENT>\n                     {line++; column = 1;}
+<COMMENT>\n                     {line++; column = 0;}
 %%
 
 int main()
 {
-  /*
-FILE* f = fopen("../testes/factorial.dgo", "r");
-FILE* f1 = fopen("../testes/factorial.out", "r");
+FILE* f = fopen("../testes/comments_bad_1.dgo", "r");
+FILE* f1 = fopen("../testes/comments_bad_1.out", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
 yyin = f;
 yyout = f2;
-*/
 yylex();
 if (in_literal) fprintf(yyout, "Line %d, column %d: unterminated literal\n", ly, lx);
 if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
-/*
 fclose(f2);
 f2 = fopen("texto_output.txt", "r");
 if (textComparer(f1, f2))printf("Works!\n");
@@ -262,7 +260,6 @@ else printf("?\n");
 fclose(f2);
 fclose(f);
 fclose(f1);
-*/
 return 0;
 }
 int yywrap()
