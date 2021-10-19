@@ -225,8 +225,8 @@ int main()
 FILE* f = fopen("../testes/ids_keywords_3.dgo", "r");
 FILE* f1 = fopen("../testes/ids_keywords_3.out", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
-//yyin = f;
-//yyout = f2;
+yyin = f;
+yyout = f2;
 yylex();
 if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
 fclose(f2);
