@@ -370,14 +370,14 @@ static const flex_int16_t yy_accept[246] =
        54,   37,   38,   14,   54,   54,   54,   54,   54,   54,
        54,   54,   54,   54,   54,   54,   54,   54,   54,   35,
        13,   36,   75,   73,   74,   73,   68,   64,   67,   68,
-       70,   71,   70,   62,   63,   61,   62,   56,   42,   16,
+       70,   71,   70,   62,   63,   59,   62,   56,   42,   16,
        44,   13,   18,   14,   15,   18,    0,   49,    0,   48,
        47,   17,   49,   51,   52,    0,   50,   53,   15,   33,
 
        30,   31,   15,   54,   23,   23,   54,   54,   54,   54,
        54,   54,   54,   54,   54,   54,   54,   54,    8,    3,
        54,   54,   54,   54,   54,   54,   54,   54,   54,   54,
-       54,   54,   45,   72,   66,   65,   69,   59,   58,   60,
+       54,   54,   45,   72,   66,   65,   69,   60,   58,   61,
        18,    0,   49,   47,   52,   52,    0,   49,   50,   54,
        54,   54,   54,   54,   54,   54,   54,   54,   54,    2,
        54,   54,   54,    4,    8,    0,   54,   54,   54,   54,
@@ -1262,29 +1262,12 @@ YY_RULE_SETUP
                                   literror = true;
                                   fprintf(yyout, "Line %d, column %d: invalid escape sequence (\\)\n",
                                   line, column++);
-                                  yyless(0);
+                                  yyless(1);
                                 }
 	YY_BREAK
 case 59:
-/* rule 59 can match eol */
 YY_RULE_SETUP
 #line 185 "gocompiler.l"
-{
-                                  literror = true;
-                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
-                                  line, column++, yytext);
-                                }
-	YY_BREAK
-case 60:
-YY_RULE_SETUP
-#line 190 "gocompiler.l"
-{
-                                  if(!literror)addStrLit(yytext); column+=yyleng;
-                                }
-	YY_BREAK
-case 61:
-YY_RULE_SETUP
-#line 193 "gocompiler.l"
 {
                                   column++;
                                   addLit(0);
@@ -1297,21 +1280,39 @@ YY_RULE_SETUP
                                   literalPos = 0;
                                 }
 	YY_BREAK
+case 60:
+/* rule 60 can match eol */
+YY_RULE_SETUP
+#line 196 "gocompiler.l"
+{
+                                  literror = true;
+                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
+                                  line, column++, yytext);
+                                }
+	YY_BREAK
+case 61:
+YY_RULE_SETUP
+#line 201 "gocompiler.l"
+{
+                                  if(!literror)addStrLit(yytext); column+=yyleng;
+                                }
+	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 205 "gocompiler.l"
+#line 204 "gocompiler.l"
 {if(!literror)addLit(yytext[0]); column++;}
 	YY_BREAK
 case 63:
 /* rule 63 can match eol */
 YY_RULE_SETUP
-#line 206 "gocompiler.l"
+#line 205 "gocompiler.l"
 {
                                   BEGIN 0;
                                   fprintf(yyout, "Line %d, column %d: unterminated string literal\n",
                                    y, x);
                                    yyless(0);
                                    literalPos = 0;
+                                   literror = false;
                                 }
 	YY_BREAK
 /*  Comment */
@@ -1382,7 +1383,7 @@ YY_RULE_SETUP
 #line 231 "gocompiler.l"
 ECHO;
 	YY_BREAK
-#line 1385 "lex.yy.c"
+#line 1386 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STRLIT):
 case YY_STATE_EOF(STRLITVALID):

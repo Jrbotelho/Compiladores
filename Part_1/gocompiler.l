@@ -179,15 +179,7 @@ bool textComparer(FILE* f1, FILE* f2){
                                   literror = true;
                                   fprintf(yyout, "Line %d, column %d: invalid escape sequence (\\)\n",
                                   line, column++);
-                                  yyless(0);
-                                }
-<STRING>{invalid_escape}        {
-                                  literror = true;
-                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
-                                  line, column++, yytext);
-                                }
-<STRING>{valid_escape}          {
-                                  if(!literror)addStrLit(yytext); column+=yyleng;
+                                  yyless(1);
                                 }
 <STRING>\"                      {
                                   column++;
@@ -200,7 +192,14 @@ bool textComparer(FILE* f1, FILE* f2){
                                   literror = false;
                                   literalPos = 0;
                                 }
-
+<STRING>{invalid_escape}        {
+                                  literror = true;
+                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
+                                  line, column++, yytext);
+                                }
+<STRING>{valid_escape}          {
+                                  if(!literror)addStrLit(yytext); column+=yyleng;
+                                }
 <STRING>.                       {if(!literror)addLit(yytext[0]); column++;}
 <STRING>\n                      {
                                   BEGIN 0;
@@ -208,6 +207,7 @@ bool textComparer(FILE* f1, FILE* f2){
                                    y, x);
                                    yyless(0);
                                    literalPos = 0;
+                                   literror = false;
                                 }
 
                             /*  Comment */
