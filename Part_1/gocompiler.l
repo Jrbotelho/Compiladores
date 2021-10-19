@@ -13,8 +13,8 @@ float                           {float_1}|{float_2}
 num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
 invalid_escape                  \\[^nrft\\\"]
+valid_escape                    \\[nrft\\\"]
 whitespace                      [ \t\f\s]
-invalid_text                    {invalid_escape}|\n
 
 %{
 #include <ctype.h>
@@ -56,6 +56,10 @@ void addOctal(char c){
 
 void addLit(char c){
   literal[literalPos++] = c;
+}
+
+void addStrLit(char* c){
+  for (int i = 0; c[i] != 0; i++) addLit(c[i]);
 }
 
 bool textComparer(FILE* f1, FILE* f2){
@@ -133,29 +137,7 @@ bool textComparer(FILE* f1, FILE* f2){
 
 
 \"                              {BEGIN STRING; x = column++; y = line;}
-<STRING>\"                      {
-                                  BEGIN 0; column++;
-                                  if(!literror)fprintf(yyout, "STRLIT(\"%s\")\n", literal);
-                                  literror = false;
-                                }
-<STRING>\\\n                    {
-                                  BEGIN 0;
-                                  fprintf(yyout, "Line %d, column %d: unterminated string literal\n",
-                                  y, x);
-                                  yyless(1);
-                                }
-<STRING>{invalid_escape}        {
-                                  literror = true;
-                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
-                                  line, column++, yytext);
-                                }
-<STRING>.                       {if(!literror)addLit(yytext[0]); column++;}
-<STRING>\n                      {
-                                  BEGIN 0;
-                                  fprintf(yyout, "Line %d, column %d: unterminated string literal\n",
-                                   y, x);
-                                   yyless(0);
-                                }
+
 
                             /* Comments */
 
@@ -179,7 +161,7 @@ bool textComparer(FILE* f1, FILE* f2){
                                   column += yyleng;
                                 }
 {num}+                          {
-                                  fprintf(yyout, "INTLIT(%s)", yytext);
+                                  fprintf(yyout, "INTLIT(%s)\n", yytext);
                                   column += yyleng; BEGIN SEMICHECK;
                                 }
 {id}                            {fprintf(yyout, "ID(%s)\n", yytext); column += yyleng; BEGIN SEMICHECK;}
@@ -191,6 +173,32 @@ bool textComparer(FILE* f1, FILE* f2){
 .                               {
                                   fprintf(yyout, "Line %d, column %d: illegal character (%c)\n",
                                           line, column+=yyleng, yytext[0]);
+                                }
+
+
+<STRING>{invalid_escape}        {
+                                  literror = true;
+                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
+                                  line, column++, yytext);
+                                }
+<STRING>{valid_escape}          {
+                                  if(!literror)addStrLit(yytext); column+=yyleng;
+                                }
+<STRING>\"                      {
+                                  BEGIN SEMICHECK; column++;
+                                  addLit(0);
+                                  if(!literror)fprintf(yyout, "STRLIT(\"%s\")\n", literal);
+                                  literror = false;
+                                  literalPos = 0;
+                                }
+
+<STRING>.                       {if(!literror)addLit(yytext[0]); column++;}
+<STRING>\n                      {
+                                  BEGIN 0;
+                                  fprintf(yyout, "Line %d, column %d: unterminated string literal\n",
+                                   y, x);
+                                   yyless(0);
+                                   literalPos = 0;
                                 }
 
                             /*  Comment */
@@ -214,11 +222,11 @@ bool textComparer(FILE* f1, FILE* f2){
 
 int main()
 {
-FILE* f = fopen("../testes/semicolons_1.dgo", "r");
-FILE* f1 = fopen("../testes/semicolons_1.out", "r");
+FILE* f = fopen("../testes/ids_keywords_3.dgo", "r");
+FILE* f1 = fopen("../testes/ids_keywords_3.out", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
-//yyin = f;
-//yyout = f2;
+yyin = f;
+yyout = f2;
 yylex();
 if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
 fclose(f2);
