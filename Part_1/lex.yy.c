@@ -1303,7 +1303,7 @@ YY_RULE_SETUP
 case 63:
 YY_RULE_SETUP
 #line 207 "gocompiler.l"
-{column++;}
+{column++; printf("%d", yytext[0]);}
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
@@ -1328,7 +1328,7 @@ case YY_STATE_EOF(SEMICHECK):
 case 67:
 YY_RULE_SETUP
 #line 212 "gocompiler.l"
-{BEGIN 0; yyless(0);}
+{BEGIN 0; yyless(0); ECHO;}
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
@@ -2386,8 +2386,8 @@ int main()
 FILE* f = fopen("../testes/ids_keywords_3.dgo", "r");
 FILE* f1 = fopen("../testes/ids_keywords_3.out", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
-yyin = f;
-yyout = f2;
+//yyin = f;
+//yyout = f2;
 yylex();
 if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
 fclose(f2);

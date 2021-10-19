@@ -14,7 +14,7 @@ num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
 invalid_escape                  \\[^nrft\\\"]
 valid_escape                    \\[nrft\\\"]
-whitespace                      [ \t\f\s]
+whitespace                      [ \t\f]
 
 %{
 #include <ctype.h>
@@ -203,12 +203,12 @@ bool textComparer(FILE* f1, FILE* f2){
 
                             /*  Comment */
 
-<SEMICHECK>{whitespace}         {column++;}
+<SEMICHECK>{whitespace}         {column++; printf("%d", yytext[0]);}
 <SEMICHECK>\/\/                 {fprintf(yyout, "SEMICOLON\n"); BEGIN 0; yyless(0);}
 <SEMICHECK>\/\*                 {BEGIN IN_COMMENT; in_comment = 1; x = column, y = line; column += yyleng;}
 <SEMICHECK>\n                   {line++; column = 1; fprintf(yyout, "SEMICOLON\n"); BEGIN 0;}
 <SEMICHECK><<EOF>>              {fprintf(yyout, "SEMICOLON\n");}
-<SEMICHECK>.                    {BEGIN 0; yyless(0);}
+<SEMICHECK>.                    {BEGIN 0; yyless(0); ECHO;}
 
 <IN_COMMENT>\*\/                {BEGIN SEMICHECK; column += yyleng; in_comment = 0;}
 <IN_COMMENT>.                   {column += yyleng;}
@@ -225,8 +225,8 @@ int main()
 FILE* f = fopen("../testes/ids_keywords_3.dgo", "r");
 FILE* f1 = fopen("../testes/ids_keywords_3.out", "r");
 FILE* f2 = fopen("texto_output.txt", "w");
-yyin = f;
-yyout = f2;
+//yyin = f;
+//yyout = f2;
 yylex();
 if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
 fclose(f2);
