@@ -2397,52 +2397,8 @@ void yyfree (void * ptr )
 
 
 int main(){
-  char names[][100] = {
-    "../testes/blank_1", "../testes/comments_1", "../testes/comments_2",
-    "../testes/comments_bad_1", "../testes/comments_bad_2", "../testes/empty_1",
-    "../testes/ids_keywords_1", "../testes/ids_keywords_2", "../testes/ids_keywords_3",
-    "../testes/illegalchar_1", "../testes/literals_1", "../testes/literals_2",
-    "../testes/literals_3", "../testes/operators_1", "../testes/operators_2",
-    "../testes/semicolons_1", "../testes/semicolons_2", "../testes/str_bad_1",
-    "../testes/test0", "../testes/text_1", "../testes/text_2", ""
-  };
-  int namesPos = 5;
-  int breaker = -1;
-  bool debug = 1;
-  while(debug && names[namesPos][0] != 0){
-      if (namesPos == breaker) break;
-      line = 1, column = 1;
-      char input[40];
-      char output[40];
-      in_comment = 0;
-      strcpy(input, names[namesPos]);
-      strcpy(output, names[namesPos]);
-      strcat(input, ".dgo");
-      strcat(output, ".out");
-      FILE* f = fopen(input, "r");
-      FILE* f1 = fopen(output, "r");
-      FILE* f2 = fopen("texto_output.txt", "w");
-      yyin = f;
-      yyout = f2;
-      yylex();
-      if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
-      fclose(f2);
-      f2 = fopen("texto_output.txt", "r");
-      if (textComparer(f1, f2))printf("Works!\n");
-      else{
-        printf("On file %s\n", input);
-        fclose(f1);
-        fclose(f2);
-        fclose(f);
-        break;
-      }
-      fclose(f);
-      fclose(f2);
-      fclose(f1);
-      namesPos += 1;
-  }
-  printf("done :)\n");
-  if (!debug) yylex();
+  if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
+  yylex();
   return 0;
 }
 int yywrap()
