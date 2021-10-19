@@ -14,7 +14,7 @@ num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
 invalid_escape                  \\[^nrft\\\"]
 whitespace                      [ \t\f\s]
-
+invalid_text                    {invalid_escape}|\n
 
 %{
 #include <ctype.h>
@@ -30,7 +30,7 @@ char literal[1000];
 int literalPos = 0;
 int octalPos = 0;
 bool octalError = false;
-bool semicolon = false;
+bool literror = false;
 
 char* trim_whitespace(char* string){
   char* output =  (char*)malloc(strlen(string)*sizeof(char));
@@ -75,7 +75,7 @@ bool textComparer(FILE* f1, FILE* f2){
 }
 %}
 
-%X STRLIT STRLITVALID LINE_COMMENT COMMENT SEMICHECK IN_COMMENT
+%X STRLIT STRLITVALID LINE_COMMENT COMMENT SEMICHECK IN_COMMENT STRING
 %%
                             /* Reserved declared    */
 
@@ -131,6 +131,32 @@ bool textComparer(FILE* f1, FILE* f2){
 \&\&                            {fprintf(yyout, "AND\n"); column += yyleng;}
 \|\|                            {fprintf(yyout, "OR\n"); column += yyleng;}
 
+
+\"                              {BEGIN STRING; x = column++; y = line;}
+<STRING>\"                      {
+                                  BEGIN 0; column++;
+                                  if(!literror)fprintf(yyout, "STRLIT(\"%s\")\n", literal);
+                                  literror = false;
+                                }
+<STRING>\\\n                    {
+                                  BEGIN 0;
+                                  fprintf(yyout, "Line %d, column %d: unterminated string literal\n",
+                                  y, x);
+                                  yyless(1);
+                                }
+<STRING>{invalid_escape}        {
+                                  literror = true;
+                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
+                                  line, column++, yytext);
+                                }
+<STRING>.                       {if(!literror)addLit(yytext[0]); column++;}
+<STRING>\n                      {
+                                  BEGIN 0;
+                                  fprintf(yyout, "Line %d, column %d: unterminated string literal\n",
+                                   y, x);
+                                   yyless(0);
+                                }
+
                             /* Comments */
 
 \/\/.*                          {column += yyleng;}
@@ -138,11 +164,6 @@ bool textComparer(FILE* f1, FILE* f2){
 
                             /*  Numbers and literals    */
 
-\"                              {
-                                  BEGIN STRLITVALID;
-                                  column += yyleng;
-                                  ly = line, lx = column;
-                                }
 {float}                         {fprintf(yyout, "REALLIT(%s)\n", yytext); column += yyleng; BEGIN SEMICHECK;}
 0[xX]{hex}*                     {
                                   fprintf(yyout, "INTLIT(%s)\n", yytext);
@@ -171,23 +192,6 @@ bool textComparer(FILE* f1, FILE* f2){
                                   fprintf(yyout, "Line %d, column %d: illegal character (%c)\n",
                                           line, column+=yyleng, yytext[0]);
                                 }
-
-                            /*  Str Literal */
-
-<STRLITVALID>[^\"]\n            {
-                                  fprintf(yyout, "Line %d, column %d: unterminated string literal\n", ly, lx-1);
-                                  BEGIN 0;
-                                  yyless(0);
-                                }
-<STRLITVALID>.                  {fprintf(yyout, "STRLIT(\""); BEGIN STRLIT; yyless(0);}
-<STRLIT>{invalid_escape}        {
-                                  fprintf(yyout, "\")\nLine %d, column %d: invalid escape sequence (%s)\n"
-                                  "STRLIT(\"",
-                                  line, (column+=yyleng)-1, yytext);
-                                }
-<STRLIT>\\.                     {ECHO; column += yyleng;}
-<STRLIT>\"                      {BEGIN 0; fprintf(yyout, "\")\n"); column += yyleng; BEGIN SEMICHECK;}
-<STRLIT>.                       {ECHO; column += yyleng;}
 
                             /*  Comment */
 
