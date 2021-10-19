@@ -10,7 +10,7 @@ RPAR
 INT
 LBRACE
 Line 4, column 5: illegal character (\)
-Line 4, column 7: illegal character (:)
+RESERVED(:)
 IF
 ID(n)
 EQ
@@ -43,7 +43,7 @@ VAR
 ID(argument)
 INT
 SEMICOLON
-Line 13, column 23: illegal character (&)
+RESERVED(&)
 Line 13, column 25: illegal character ($)
 ID(argument)
 COMMA
