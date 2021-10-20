@@ -1,5 +1,6 @@
 /* João Ricardo Miranda Botelho 2019155348  */
 /* José Pedro Silvério Braz     2017247538  */
+/* C D H L */
 
 letter                          ([a-z]|[A-Z]|\_)
 num                             [0-9]
@@ -40,7 +41,6 @@ char* trim_whitespace(char* string){
   return output;
 }
 
-bool in_comment = 0;
 char* atoupper(char* str){
     for (int i = 0; str[i] != 0; i++) str[i] = toupper(str[i]);
     return str;
@@ -99,10 +99,10 @@ bool textComparer(FILE* f1, FILE* f2){
 ("fallthrough")|("range")       |
 ("type")|("continue")           |
 (\&\=)|\||(\-\=)|(\|\=)         |
-\^|(\*\=)|(\^\=)|(\<\-)|\&      |
+\^|(\*\=)|(\^\=)|(\<\-)         |
 (\<\<)|(\>\>)|(\<\<\=)|(\+\+)   |
 (\:\=)|(\%\=)|(\>\>\=)|(\+\=)   |
-(\/\=)|(\:)                     |
+(\/\=)|                         |
 (\-\-)|(\.\.\.)|(\&\^\=?)       {fprintf(yyout, "RESERVED(%s)\n", yytext); column += yyleng;}
 
                             /*  Args and puncts */
@@ -142,7 +142,7 @@ bool textComparer(FILE* f1, FILE* f2){
                             /* Comments */
 
 \/\/.*                          {column += yyleng;}
-\/\*                            {BEGIN COMMENT; in_comment = 1; x = column, y = line; column += yyleng;}
+\/\*                            {BEGIN COMMENT; x = column, y = line; column += yyleng;}
 
                             /*  Numbers and literals    */
 
@@ -174,13 +174,6 @@ bool textComparer(FILE* f1, FILE* f2){
                                   fprintf(yyout, "Line %d, column %d: illegal character (%c)\n",
                                           line, column, yytext[0]); column += yyleng;
                                 }
-
-<STRING>\\\n                    {
-                                  literror = true;
-                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (\\)\n",
-                                  line, column++);
-                                  yyless(1);
-                                }
 <STRING>\"                      {
                                   column++;
                                   addLit(0);
@@ -195,10 +188,16 @@ bool textComparer(FILE* f1, FILE* f2){
 <STRING>{invalid_escape}        {
                                   literror = true;
                                   fprintf(yyout, "Line %d, column %d: invalid escape sequence (%s)\n",
-                                  line, column++, yytext);
+                                  line, column, yytext);
+                                  column += yyleng;
                                 }
 <STRING>{valid_escape}          {
                                   if(!literror)addStrLit(yytext); column+=yyleng;
+                                }
+<STRING>\\                      {
+                                  literror = true;
+                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (\\)\n",
+                                  line, column++);
                                 }
 <STRING>.                       {if(!literror)addLit(yytext[0]); column++;}
 <STRING>\n                      {
@@ -214,23 +213,27 @@ bool textComparer(FILE* f1, FILE* f2){
 
 <SEMICHECK>{whitespace}         {column++;}
 <SEMICHECK>\/\/                 {fprintf(yyout, "SEMICOLON\n"); BEGIN 0; yyless(0);}
-<SEMICHECK>\/\*                 {BEGIN IN_COMMENT; in_comment = 1; x = column, y = line; column += yyleng;}
+<SEMICHECK>\/\*                 {BEGIN IN_COMMENT; x = column, y = line; column += yyleng;}
 <SEMICHECK>\n                   {line++; column = 1; fprintf(yyout, "SEMICOLON\n"); BEGIN 0;}
-<SEMICHECK><<EOF>>              {fprintf(yyout, "SEMICOLON\n");}
+<SEMICHECK><<EOF>>              {fprintf(yyout, "SEMICOLON\n"); BEGIN 0;}
 <SEMICHECK>.                    {BEGIN 0; yyless(0); ECHO;}
 
-<IN_COMMENT>\*\/                {BEGIN SEMICHECK; column += yyleng; in_comment = 0;}
+<IN_COMMENT>\*\/                {BEGIN SEMICHECK; column += yyleng;}
+<IN_COMMENT><<EOF>>             {
+                                  fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
+                                  BEGIN SEMICHECK; yyless(0);
+                                }
 <IN_COMMENT>.                   {column += yyleng;}
 <IN_COMMENT>\n                  {line++; column = 1; fprintf(yyout, "SEMICOLON\n"); BEGIN COMMENT;}
 
 
-<COMMENT>\*\/                   {BEGIN 0; column += yyleng; in_comment = 0;}
+<COMMENT>\*\/                   {BEGIN 0; column += yyleng;}
+<COMMENT><<EOF>>                {fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x); BEGIN 0;}
 <COMMENT>.                      {column += yyleng;}
 <COMMENT>\n                     {line++; column = 1;}
 %%
 
 int main(){
-  if (in_comment) fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x);
   yylex();
   return 0;
 }
