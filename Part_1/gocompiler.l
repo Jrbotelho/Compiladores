@@ -98,12 +98,7 @@ bool textComparer(FILE* f1, FILE* f2){
 ("switch")|("const")|("import") |
 ("fallthrough")|("range")       |
 ("type")|("continue")           |
-(\&\=)|\||(\-\=)|(\|\=)         |
-\^|(\*\=)|(\^\=)|(\<\-)         |
-(\<\<)|(\>\>)|(\<\<\=)|(\+\+)   |
-(\:\=)|(\%\=)|(\>\>\=)|(\+\=)   |
-(\/\=)|                         |
-(\-\-)|(\.\.\.)|(\&\^\=?)       {fprintf(yyout, "RESERVED(%s)\n", yytext); column += yyleng;}
+(\+\+)|(\-\-)                   {fprintf(yyout, "RESERVED(%s)\n", yytext); column += yyleng;}
 
                             /*  Args and puncts */
 
@@ -111,7 +106,7 @@ bool textComparer(FILE* f1, FILE* f2){
 "strconv.Atoi"                  {fprintf(yyout, "PARSEINT\n"); column += yyleng;}
 "os.Args"                       {fprintf(yyout, "CMDARGS\n"); column += yyleng;}
 \,                              {fprintf(yyout, "COMMA\n"); column += yyleng;}
-\_[^{letter}]                   {fprintf(yyout, "BLANKID\n"); column++; yyless(1);}
+\_[^{alphanum}]                 {fprintf(yyout, "BLANKID\n"); column++; yyless(1);}
 \;                              {fprintf(yyout, "SEMICOLON\n"); column += yyleng;}
 \=                              {fprintf(yyout, "ASSIGN\n"); column += yyleng;}
 \*                              {fprintf(yyout, "STAR\n"); column += yyleng;}
