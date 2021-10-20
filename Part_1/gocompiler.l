@@ -8,13 +8,16 @@ alphanum                        {letter}|{num}
 id                              {letter}{alphanum}*
 hex                             [0-9a-fA-F]
 expo                            [eE][+-]?{num}+
-float_1                         {num}*\.{num}*{expo}?
-float_2                         {num}+{expo}
-float                           {float_1}|{float_2}
+float_1                         {num}*\.{num}+{expo}?
+float_2                         {num}+\.{num}*{expo}?
+float_3                         {num}+{expo}
+float                           {float_1}|{float_2}|{float_3}
 num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
 operator                        [-+*/&|]
 invalid_escape                  \\[^nrft\\\"]
+                                                  /*" */
 valid_escape                    \\[nrft\\\"]
+                                                  /*" */
 whitespace                      [ \t\f]
 
 %{
@@ -142,7 +145,7 @@ bool textComparer(FILE* f1, FILE* f2){
                             /*  Numbers and literals    */
 
 {float}                         {fprintf(yyout, "REALLIT(%s)\n", yytext); column += yyleng; BEGIN SEMICHECK;}
-0[xX]{hex}*                     {
+0[xX]{hex}+                     {
                                   fprintf(yyout, "INTLIT(%s)\n", yytext);
                                   column += yyleng;
                                   BEGIN SEMICHECK;
