@@ -1310,7 +1310,7 @@ case YY_STATE_EOF(SEMICHECK):
 case 63:
 YY_RULE_SETUP
 #line 207 "gocompiler.l"
-{BEGIN 0; yyless(0); ECHO;}
+{BEGIN 0; yyless(0); printf("???????!!!!?\n");}
 	YY_BREAK
 /*  Comment within Semicolon Check*/
 case 64:

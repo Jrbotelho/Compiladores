@@ -137,7 +137,7 @@ _                               {showStr("BLANKID"); column++;}
 
                             /* Comments */
 
-\/\/.*                          {column += yyleng;}
+\/\/.*                          {;}
 \/\*                            {BEGIN COMMENT; x = column, y = line; column += yyleng;}
 
                             /*  Numbers and literals    */
@@ -203,7 +203,7 @@ _                               {showStr("BLANKID"); column++;}
 <SEMICHECK>\/\*                 {BEGIN IN_COMMENT; x = column, y = line; column += yyleng;}
 <SEMICHECK>\n                   {line++; column = 1; show(-1); BEGIN 0;}
 <SEMICHECK><<EOF>>              {show(-1); BEGIN 0;}
-<SEMICHECK>.                    {BEGIN 0; yyless(0); ECHO;}
+<SEMICHECK>.                    {BEGIN 0; yyless(0);}
 
                                 /*  Comment within Semicolon Check*/
 
