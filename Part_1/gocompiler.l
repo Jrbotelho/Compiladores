@@ -1,24 +1,22 @@
 /* João Ricardo Miranda Botelho 2019155348  */
 /* José Pedro Silvério Braz     2017247538  */
-/* C D H L */
+/* C H */
 
-letter                          ([a-z]|[A-Z]|\_)
+letter                          ([a-zA-Z]|_)
 num                             [0-9]
 alphanum                        {letter}|{num}
-id                              {letter}{alphanum}*
+id                              (_{alphanum}+)|([a-zA-Z]{alphanum}*)
 hex                             [0-9a-fA-F]
 expo                            [eE][+-]?{num}+
 float_1                         {num}*\.{num}+{expo}?
 float_2                         {num}+\.{num}*{expo}?
 float_3                         {num}+{expo}
 float                           {float_1}|{float_2}|{float_3}
-num_finish                      " "|\)|\;|\{|\}|\]|\t|\,
-operator                        [-+*/&|]
-invalid_escape                  \\[^nrft\\\"]
-                                                  /*" */
-valid_escape                    \\[nrft\\\"]
-                                                  /*" */
 whitespace                      [ \t\f]
+invalid_escape                  \\[^nrft\\\"]
+                                /*" */
+valid_escape                    \\[nrft\\\"]
+                                /*" */
 
 %{
 #include <ctype.h>
@@ -28,7 +26,7 @@ whitespace                      [ \t\f]
 int line = 1, column = 1;
 int x = 0, y = 0;
 int lx = 0, ly = 0;
-
+bool mayprint = false;
 char octal[1000];
 char literal[1000];
 int literalPos = 0;
@@ -64,33 +62,17 @@ void addLit(char c){
 void addStrLit(char* c){
   for (int i = 0; c[i] != 0; i++) addLit(c[i]);
 }
-
-bool textComparer(FILE* f1, FILE* f2){
-  int pos = 0;
-  char a = 0, b = 0;
-  printf("started comparing...\n");
-  while(a != EOF && b != EOF){
-    a = fgetc(f1);
-    b = fgetc(f2);
-    if (a != b){
-      printf("ERROR ON POS %d\na = %c\tb = %c\n", pos, a, b);
-      return 0;
-    }
-    pos++;
-  }
-  return (a == EOF && b == EOF);
-}
 %}
 
 %X STRLIT STRLITVALID LINE_COMMENT COMMENT SEMICHECK IN_COMMENT STRING
 %%
                             /* Reserved declared    */
 
-"return"                        {fprintf(yyout, "RETURN\n"); column += yyleng; BEGIN SEMICHECK;}
+"return"                        {if(mayprint)fprintf(yyout, "RETURN\n"); column += yyleng; BEGIN SEMICHECK;}
 ("package")|("return")|("for")  |
 ("func")|("if")|("else")        |
 ("var")|("int")|("float32")     |
-("bool")|("string")             {fprintf(yyout, "%s\n", atoupper(yytext)); column += yyleng;}
+("bool")|("string")             {if(mayprint)fprintf(yyout, "%s\n", atoupper(yytext)); column += yyleng;}
 
                             /*  Reserved undeclared */
 
@@ -101,37 +83,37 @@ bool textComparer(FILE* f1, FILE* f2){
 ("switch")|("const")|("import") |
 ("fallthrough")|("range")       |
 ("type")|("continue")           |
-(\+\+)|(\-\-)                   {fprintf(yyout, "RESERVED(%s)\n", yytext); column += yyleng;}
+(\+\+)|(\-\-)                   {if(mayprint)fprintf(yyout, "RESERVED(%s)\n", yytext); column += yyleng;}
 
                             /*  Args and puncts */
 
-"fmt.Println"                   {fprintf(yyout, "PRINT\n"); column += yyleng;}
-"strconv.Atoi"                  {fprintf(yyout, "PARSEINT\n"); column += yyleng;}
-"os.Args"                       {fprintf(yyout, "CMDARGS\n"); column += yyleng;}
-\,                              {fprintf(yyout, "COMMA\n"); column += yyleng;}
-\_[^{alphanum}]                 {fprintf(yyout, "BLANKID\n"); column++; yyless(1);}
-\;                              {fprintf(yyout, "SEMICOLON\n"); column += yyleng;}
-\=                              {fprintf(yyout, "ASSIGN\n"); column += yyleng;}
-\*                              {fprintf(yyout, "STAR\n"); column += yyleng;}
-\/                              {fprintf(yyout, "DIV\n"); column += yyleng;}
-\-                              {fprintf(yyout, "MINUS\n"); column += yyleng;}
-\+                              {fprintf(yyout, "PLUS\n"); column += yyleng;}
-\=\=                            {fprintf(yyout, "EQ\n"); column += yyleng;}
-\>\=                            {fprintf(yyout, "GE\n"); column += yyleng;}
-\>                              {fprintf(yyout, "GT\n"); column += yyleng;}
-\<\=                            {fprintf(yyout, "LE\n"); column += yyleng;}
-\<                              {fprintf(yyout, "LT\n"); column += yyleng;}
-\{                              {fprintf(yyout, "LBRACE\n"); column += yyleng;}
-\}                              {fprintf(yyout, "RBRACE\n"); column += yyleng; BEGIN SEMICHECK;}
-\[                              {fprintf(yyout, "LSQ\n"); column += yyleng;}
-\]                              {fprintf(yyout, "RSQ\n"); column += yyleng; BEGIN SEMICHECK;}
-\(                              {fprintf(yyout, "LPAR\n"); column += yyleng;}
-\)                              {fprintf(yyout, "RPAR\n"); column += yyleng; BEGIN SEMICHECK;}
-\%                              {fprintf(yyout, "MOD\n"); column += yyleng;}
-\!\=                            {fprintf(yyout, "NE\n"); column += yyleng;}
-\!                              {fprintf(yyout, "NOT\n"); column += yyleng;}
-\&\&                            {fprintf(yyout, "AND\n"); column += yyleng;}
-\|\|                            {fprintf(yyout, "OR\n"); column += yyleng;}
+"fmt.Println"                   {if(mayprint)fprintf(yyout, "PRINT\n"); column += yyleng;}
+"strconv.Atoi"                  {if(mayprint)fprintf(yyout, "PARSEINT\n"); column += yyleng;}
+"os.Args"                       {if(mayprint)fprintf(yyout, "CMDARGS\n"); column += yyleng;}
+\,                              {if(mayprint)fprintf(yyout, "COMMA\n"); column += yyleng;}
+_                               {if(mayprint)fprintf(yyout, "BLANKID\n"); column++;}
+\;                              {if(mayprint)fprintf(yyout, "SEMICOLON\n"); column += yyleng;}
+\=                              {if(mayprint)fprintf(yyout, "ASSIGN\n"); column += yyleng;}
+\*                              {if(mayprint)fprintf(yyout, "STAR\n"); column += yyleng;}
+\/                              {if(mayprint)fprintf(yyout, "DIV\n"); column += yyleng;}
+\-                              {if(mayprint)fprintf(yyout, "MINUS\n"); column += yyleng;}
+\+                              {if(mayprint)fprintf(yyout, "PLUS\n"); column += yyleng;}
+\=\=                            {if(mayprint)fprintf(yyout, "EQ\n"); column += yyleng;}
+\>\=                            {if(mayprint)fprintf(yyout, "GE\n"); column += yyleng;}
+\>                              {if(mayprint)fprintf(yyout, "GT\n"); column += yyleng;}
+\<\=                            {if(mayprint)fprintf(yyout, "LE\n"); column += yyleng;}
+\<                              {if(mayprint)fprintf(yyout, "LT\n"); column += yyleng;}
+\{                              {if(mayprint)fprintf(yyout, "LBRACE\n"); column += yyleng;}
+\}                              {if(mayprint)fprintf(yyout, "RBRACE\n"); column += yyleng; BEGIN SEMICHECK;}
+\[                              {if(mayprint)fprintf(yyout, "LSQ\n"); column += yyleng;}
+\]                              {if(mayprint)fprintf(yyout, "RSQ\n"); column += yyleng; BEGIN SEMICHECK;}
+\(                              {if(mayprint)fprintf(yyout, "LPAR\n"); column += yyleng;}
+\)                              {if(mayprint)fprintf(yyout, "RPAR\n"); column += yyleng; BEGIN SEMICHECK;}
+\%                              {if(mayprint)fprintf(yyout, "MOD\n"); column += yyleng;}
+\!\=                            {if(mayprint)fprintf(yyout, "NE\n"); column += yyleng;}
+\!                              {if(mayprint)fprintf(yyout, "NOT\n"); column += yyleng;}
+\&\&                            {if(mayprint)fprintf(yyout, "AND\n"); column += yyleng;}
+\|\|                            {if(mayprint)fprintf(yyout, "OR\n"); column += yyleng;}
 
 
 \"                              {BEGIN STRING; x = column++; y = line;}
@@ -144,14 +126,14 @@ bool textComparer(FILE* f1, FILE* f2){
 
                             /*  Numbers and literals    */
 
-{float}                         {fprintf(yyout, "REALLIT(%s)\n", yytext); column += yyleng; BEGIN SEMICHECK;}
-0[xX]{hex}+                     {
-                                  fprintf(yyout, "INTLIT(%s)\n", yytext);
+{float}                         {if(mayprint)fprintf(yyout, "REALLIT(%s)\n", yytext); column += yyleng; BEGIN SEMICHECK;}
+0[xX]{hex}+                  {
+                                  if(mayprint)fprintf(yyout, "INTLIT(%s)\n", yytext);
                                   column += yyleng;
                                   BEGIN SEMICHECK;
                                 }
 0[0-7]+                         {
-                                  fprintf(yyout, "INTLIT(%s)\n", yytext); column += yyleng;
+                                  if(mayprint)fprintf(yyout, "INTLIT(%s)\n", yytext); column += yyleng;
                                   BEGIN SEMICHECK;
                                 }
 0[0-9]*[89]+[0-9]*              {
@@ -159,10 +141,10 @@ bool textComparer(FILE* f1, FILE* f2){
                                   column += yyleng;
                                 }
 {num}+                          {
-                                  fprintf(yyout, "INTLIT(%s)\n", yytext);
+                                  if(mayprint)fprintf(yyout, "INTLIT(%s)\n", yytext);
                                   column += yyleng; BEGIN SEMICHECK;
                                 }
-{id}                            {fprintf(yyout, "ID(%s)\n", yytext); column += yyleng; BEGIN SEMICHECK;}
+{id}                            {if(mayprint)fprintf(yyout, "ID(%s)\n", yytext); column += yyleng; BEGIN SEMICHECK;}
 
                             /*  Regular lines   */
 
@@ -177,11 +159,17 @@ bool textComparer(FILE* f1, FILE* f2){
                                   addLit(0);
                                   if(!literror){
                                     BEGIN SEMICHECK;
-                                    fprintf(yyout, "STRLIT(\"%s\")\n", literal);
+                                    if(mayprint)fprintf(yyout, "STRLIT(\"%s\")\n", literal);
                                   }
                                   else BEGIN 0;
                                   literror = false;
                                   literalPos = 0;
+                                }
+<STRING>\\\n                    {
+                                  literror = true;
+                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (\\)\n",
+                                  line, column++);
+                                  yyless(1);
                                 }
 <STRING>{invalid_escape}        {
                                   literror = true;
@@ -189,31 +177,26 @@ bool textComparer(FILE* f1, FILE* f2){
                                   line, column, yytext);
                                   column += yyleng;
                                 }
-<STRING>{valid_escape}          {
+<STRING>\\.                     {
                                   if(!literror)addStrLit(yytext); column+=yyleng;
-                                }
-<STRING>\\                      {
-                                  literror = true;
-                                  fprintf(yyout, "Line %d, column %d: invalid escape sequence (\\)\n",
-                                  line, column++);
                                 }
 <STRING>.                       {if(!literror)addLit(yytext[0]); column++;}
 <STRING>\n                      {
                                   BEGIN 0;
                                   fprintf(yyout, "Line %d, column %d: unterminated string literal\n",
-                                   y, x);
-                                   yyless(0);
-                                   literalPos = 0;
-                                   literror = false;
+                                  y, x);
+                                  yyless(0);
+                                  literalPos = 0;
+                                  literror = false;
                                 }
 
                             /*  Comment */
 
 <SEMICHECK>{whitespace}         {column++;}
-<SEMICHECK>\/\/                 {fprintf(yyout, "SEMICOLON\n"); BEGIN 0; yyless(0);}
+<SEMICHECK>\/\/                 {if(mayprint)fprintf(yyout, "SEMICOLON\n"); BEGIN 0; yyless(0);}
 <SEMICHECK>\/\*                 {BEGIN IN_COMMENT; x = column, y = line; column += yyleng;}
-<SEMICHECK>\n                   {line++; column = 1; fprintf(yyout, "SEMICOLON\n"); BEGIN 0;}
-<SEMICHECK><<EOF>>              {fprintf(yyout, "SEMICOLON\n"); BEGIN 0;}
+<SEMICHECK>\n                   {line++; column = 1; if(mayprint)fprintf(yyout, "SEMICOLON\n"); BEGIN 0;}
+<SEMICHECK><<EOF>>              {if(mayprint)fprintf(yyout, "SEMICOLON\n"); BEGIN 0;}
 <SEMICHECK>.                    {BEGIN 0; yyless(0); ECHO;}
 
 <IN_COMMENT>\*\/                {BEGIN SEMICHECK; column += yyleng;}
@@ -222,7 +205,7 @@ bool textComparer(FILE* f1, FILE* f2){
                                   BEGIN SEMICHECK; yyless(0);
                                 }
 <IN_COMMENT>.                   {column += yyleng;}
-<IN_COMMENT>\n                  {line++; column = 1; fprintf(yyout, "SEMICOLON\n"); BEGIN COMMENT;}
+<IN_COMMENT>\n                  {line++; column = 1; if(mayprint)fprintf(yyout, "SEMICOLON\n"); BEGIN COMMENT;}
 
 
 <COMMENT>\*\/                   {BEGIN 0; column += yyleng;}
@@ -231,7 +214,8 @@ bool textComparer(FILE* f1, FILE* f2){
 <COMMENT>\n                     {line++; column = 1;}
 %%
 
-int main(){
+int main(int argc, char *argv[]){
+  if (argc == 2 && strcmp(argv[1], "-l") == 0) mayprint = 1;
   yylex();
   return 0;
 }
