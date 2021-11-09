@@ -1,6 +1,5 @@
 /* João Ricardo Miranda Botelho 2019155348  */
 /* José Pedro Silvério Braz     2017247538  */
-/* C H */
 
 letter                          ([a-zA-Z]|_)
 num                             [0-9]
