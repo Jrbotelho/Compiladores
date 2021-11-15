@@ -3,30 +3,23 @@
 
 #include "structures.h"
 
-program* insert_program(char* id, declaration* d_list);
+is_program* program(is_dec_list* u_decs, char* id);
 
-declaration_list* insert_declaration_list(declaration_list* head, declaration* val);
+is_dec_list* insert_dec(is_dec_list* head, is_dec* val);
 
-declaration* insert_declaration(vardec* u_vardec);
+is_dec* insert_vardec_without_type(is_dec* head, char* id);
 
-id_list* insert_id_list(id_list* head, char* val);
+is_dec* insert_vardec_type(is_dec* head, type disc);
 
-vardec* insert_vardec(id_list* val, disc_vardec disk);
+is_vardec* insert_vardec(char* id, type disc);
 
-is_string_list* insert_string_id_list(is_string_list* head, id_list* id_head);
+is_vardec_list* insert_param(is_vardec_list* head, is_vardec* val);
 
-is_string_list* insert_string_list(is_string_list* head, char* val);
+is_funheader* insert_fun_header(is_vardec_list* params, char* id, type disc);
 
-is_bool_list* insert_bool_id_list(is_bool_list* head, id_list* id_head);
+is_fundec* insert_fundec(is_funheader* header, is_funbody* body);
 
-is_bool_list* insert_bool_list(is_bool_list* head, char* val);
+is_funbody* insert_funbody(is_vos_list* head);
 
-is_float_list* insert_float_id_list(is_float_list* head, id_list* id_head);
-
-is_float_list* insert_float_list(is_float_list* head, char* val);
-
-is_int_list* insert_int_id_list(is_int_list* head, id_list* id_head);
-
-is_int_list* insert_int_list(is_int_list* head, char* val);
-
+is_vos_list* insert_vos_list(is_vos_list* head, is_var_or_stat* val);
 #endif

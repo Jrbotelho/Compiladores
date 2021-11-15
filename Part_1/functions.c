@@ -1,159 +1,119 @@
 #include "functions.h"
-#include <stdlib.h>
-#include <string.h>
 
-program* insert_program(char* id, declaration* d_list){
-    program* prog = (program*)malloc(sizeof(program));
-    if (prog == NULL)return NULL;
-    prog->d_list = d_list;    
-    prog->id = (char*)strdup(id);
-    return prog;
+#include <strings.h>
+
+is_program* program(is_dec_list* u_decs, char* id){
+    is_program* ret = (is_program*)malloc(sizeof(is_program));
+    if (ret == NULL) return NULL;
+    ret-> id = strdup(id);
+    ret->u_decs = u_decs;
+    return ret;
 }
 
-declaration_list* insert_declaration_list(declaration_list* head, declaration* val){
-    declaration_list* dl = (declaration_list*)malloc(sizeof(declaration_list));
-    if (dl == NULL) return head;
-    dl->val = val;
-    dl->next = NULL;
-
-    if (head == NULL) return dl;
-
-    declaration_list* aux = head;
-    for(;aux->next!=NULL;aux=aux->next);
-    aux->next = dl;
-
+is_dec_list* insert_dec(is_dec_list* head, is_dec* val){
+    is_dec_list* new = (is_dec_list*)malloc(sizeof(is_dec_list));
+    if (new == NULL) return head;
+    new->val = val;
+    new->next = NULL;
+    if (head == NULL)return new;
+    is_dec_list* tmp = head;
+    for(;tmp->next!=NULL;tmp=tmp->next);
+    tmp->next = new;
     return head;
 }
 
-declaration* insert_declaration(vardec* u_vardec){
-    declaration* dec = (declaration*)malloc(sizeof(declaration));
-    dec->disk = d_vardec;
-    dec->data_dec.u_vardec = u_vardec;
-    return dec;
-}
-
-id_list* insert_id_list(id_list* head, char* val){
-    id_list* np = (id_list*)malloc(sizeof(id_list));
-    if (np == NULL) return head;
-    np->val = (char*)strdup(val);
-    np->next = NULL;
-    if (head == NULL) return np;
- 
-    id_list* tmp = head;
-    for(; tmp->next!=NULL;tmp=tmp->next);
-    tmp->next = np;
-
-    return head;
-}
-
-
-vardec* insert_vardec(id_list* val, disc_vardec disk){
-    vardec* ret = (vardec*)malloc(sizeof(vardec));
-    ret->disk = disk;
-    
-    switch(disk){
-        case d_int:
-            ret->data_vardec.u_integer = insert_int_id_list(NULL, val);
-            break;
-        case d_float:
-            ret->data_vardec.u_float = insert_float_id_List(NULL, val);
-            break;
-        case d_bool:
-            ret->data_vardec.u_bool = insert_bool_id_list(NULL, val);
-            break;
-        case d_string:
-            ret->data_vardec.u_string = insert_string_id_list(NULL, val);
-            break;
-        default:
-            break;
+is_dec* insert_vardec_without_type(is_dec* head, char* id){
+    if (head == NULL) head = (is_dec*)malloc(sizeof(is_dec));
+    is_vardec_list* new = (is_vardec_list*)malloc(sizeof(is_vardec_list));
+    if (new == NULL)return head;
+    new->val = insert_vardec_el_without_type(id);
+    new->next = NULL;
+    if (head->disc_data.u_vardec == NULL){
+        head->disc_data.u_vardec = new;
+        return head;
     }
-}
+    is_vardec_list* tmp = head->disc_data.u_vardec;
+    for(tmp; tmp->next != NULL; tmp=tmp->next);
+    tmp->next = new;
 
-is_string_list* insert_string_id_list(is_string_list* head, id_list* id_head){
-    for(;id_head!=NULL;id_head = id_head->next)
-        head = insert_string_list(head, id_head->val);
     return head;
 }
 
-is_string_list* insert_string_list(is_string_list* head, char* val){
-    is_string_list* ret = (is_string_list*)malloc(sizeof(is_string_list));
-    if (ret == NULL) return head;
-    
-    ret->val->id = (char*)strdup(val);
-    ret->val->value = NULL;
-    ret->next = NULL;
+is_vardec* insert_vardec_el_without_type(char* id){
+    is_vardec* ret = (is_vardec*)malloc(sizeof(is_vardec));
+    if (ret == NULL) return ret;
+    ret->id = strdup(id);
+    return ret;
+}
+
+is_dec* insert_vardec_type(is_dec* head, type disc){
+    if (head == NULL)return head;
+    is_vardec_list* tmp = head->disc_data.u_vardec;
+    for(; tmp != NULL; tmp=tmp->next)
+        if (tmp->val != NULL)
+            tmp->val->disc = disc;
+    return head;
+}
+
+is_vardec_list* insert_param(is_vardec_list* head, is_vardec* val){
+    is_vardec_list* ret = (is_vardec_list*)malloc(sizeof(is_vardec_list));
+    ret -> val = val;
+    ret -> next = NULL;
 
     if (head == NULL) return ret;
+    is_vardec_list* tmp = head;
+    for(; tmp -> next != NULL; tmp = tmp->next);
+    tmp->next = ret;
 
-    is_string_list* tmp = head;
-    for(;tmp->next!=NULL;tmp=tmp->next);
+    return head;
+}
+
+is_vardec* insert_vardec(char* id, type disc){
+    is_vardec* ret = (is_vardec*)malloc(sizeof(is_vardec));
+    ret->disc = disc;
+    ret->id = strdup(id);
+    return ret;
+}
+
+is_funheader* insert_fun_header(is_vardec_list* params, char* id, type disc){
+    is_funheader* ret = (is_funheader*)malloc(sizeof(is_funheader));
+    if (ret == NULL) return ret;
+    ret->id = strdup(id);
+    ret->params = params;
+    ret->ret = disc;
+    return ret;
+}
+
+is_fundec* insert_fundec(is_funheader* header, is_funbody* body){
+    is_fundec* ret = (is_fundec*)malloc(sizeof(is_fundec));
+    if (ret == NULL)return ret;
+    ret->body = body;
+    ret->header = header;
+    return ret;
+}
+
+is_funbody* insert_funbody(is_vos_list* head){
+   is_funbody* ret = (is_funbody*)malloc(sizeof(is_funbody));
+   ret->vos_list = head;
+   return ret; 
+}
+
+is_vos_list* insert_vos_list(is_vos_list* head, is_var_or_stat* val){
+    is_vos_list* ret = (is_vos_list*)malloc(sizeof(is_vos_list));
+    ret->next = NULL;
+    ret->val = val;
+    if (head == NULL) return ret;
+    is_vos_list* tmp = head;
+    for(;tmp->next!=NULL;tmp = tmp->next);
     tmp->next = ret;
     return head;
 }
 
-is_bool_list* insert_bool_id_list(is_bool_list* head, id_list* id_head){
-    for(;id_head!=NULL;id_head = id_head->next)
-        head = insert_bool_list(head, id_head->val);
-    return head;
+is_var_or_stat* insert_var(is_vardec* val){
+    is_var_or_stat* ret = (is_var_or_stat*)malloc(sizeof(is_var_or_stat));
+    return ret;
 }
 
-is_bool_list* insert_bool_list(is_bool_list* head, char* val){
-    is_bool_list* ret = (is_bool_list*)malloc(sizeof(is_bool_list));
-    if (ret == NULL) return head;
-    
-    ret->val->id = (char*)strdup(val);
-    ret->val->value = NULL;
-    ret->next = NULL;
+is_var_or_stat* insert_stat(){
 
-    if (head == NULL) return ret;
-
-    is_bool_list* tmp = head;
-    for(;tmp->next!=NULL;tmp=tmp->next);
-    tmp->next = ret;
-    return head;
 }
-
-is_float_list* insert_float_id_list(is_float_list* head, id_list* id_head){
-    for(;id_head!=NULL;id_head = id_head->next)
-        head = insert_float_list(head, id_head->val);
-    return head;
-}
-
-is_float_list* insert_float_list(is_float_list* head, char* val){
-    is_float_list* ret = (is_float_list*)malloc(sizeof(is_float_list));
-    if (ret == NULL) return head;
-    
-    ret->val->id = (char*)strdup(val);
-    ret->val->value = NULL;
-    ret->next = NULL;
-
-    if (head == NULL) return ret;
-
-    is_float_list* tmp = head;
-    for(;tmp->next!=NULL;tmp=tmp->next);
-    tmp->next = ret;
-    return head;
-}
-
-is_int_list* insert_int_id_list(is_int_list* head, id_list* id_head){
-    for(;id_head!=NULL;id_head = id_head->next)
-        head = insert_int_list(head, id_head->val);
-    return head;
-}
-
-is_int_list* insert_int_list(is_int_list* head, char* val){
-    is_int_list* ret = (is_int_list*)malloc(sizeof(is_int_list));
-    if (ret == NULL) return head;
-    
-    ret->val->id = (char*)strdup(val);
-    ret->val->value = NULL;
-    ret->next = NULL;
-
-    if (head == NULL) return ret;
-
-    is_int_list* tmp = head;
-    for(;tmp->next!=NULL;tmp=tmp->next);
-    tmp->next = ret;
-    return head;
-}
-

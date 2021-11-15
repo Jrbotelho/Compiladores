@@ -1,0 +1,70 @@
+Program
+   
+    Declarations
+        
+        VarDeclarations
+            
+            id
+            
+            type
+                INT
+                FLOAT
+                BOOL
+                STRING
+        
+        FuncDeclarations
+            
+            FuncHeader
+                id
+                return
+                param
+                    var_declaration list
+
+            FuncBody
+                VarsAndStatements
+                    VarDeclarations
+                        id
+                        type
+                            INT
+                            FLOAT
+                            BOOL
+                            STRING
+
+
+                    Statements
+                        ASSIGN
+                            id
+                            Expr
+
+                        IF 
+                            Statement
+                            else
+                                Statement
+
+                        FOR 
+                            Expr
+                            Statement
+
+                        RETURN 
+                            Statement
+
+                        FuncInvocation
+                            id
+                            Expr
+
+                        ParseArgs
+                            id
+                            CMDARGS
+                            Expr
+
+                        PRINT
+                            Expr
+                            Strlit
+
+Expr
+    OR | AND
+    LT | GT | EQ | NE | LE | GE | PLUS | MINUS | STAR | DIV | MOD
+    NOT | MINUS | PLUS Expr
+    INTLIT | REALLINT | ID 
+    FuncInvocation
+

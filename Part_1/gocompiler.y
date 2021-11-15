@@ -18,54 +18,51 @@
 %left MOD
 
 %%
-program: PACKAGE ID SEMICOLON declaration  {insert_program($2, $4);}
+program: PACKAGE ID SEMICOLON declaration  {$$ = program($2, $4);}
        ;
 
-declaration:    declaration var_declaration     {$$ = insert_declaration_list($1, $2);}
-           |    declaration func_declaration    {$$ = insert_declaration_list($1, $2);}
+declaration:    declaration var_declaration     {$$ = insert_declaration($1, $2);}
+           |    declaration func_declaration    {$$ = insert_declaration($1, $2);}
            |    /*Nothing*/                     {$$ = NULL;}
            ;    
 
-var_declaration:    VAR var_spec                        {$$ = insert_declaration($2);}
-               |    VAR LPAR var_spec SEMICOLON RPAR    {$$ = insert_declaration($2);}
+var_declaration:    VAR var_spec                        {$$ = $2;}
+               |    VAR LPAR var_spec SEMICOLON RPAR    {$$ = $3;}
                ;
 
-var_spec:   vs_cont type        {$$ = insert_vardec($1, $2);}
+var_spec:   vs_cont type        {$$ = insert_vardec_type($1, $2);}
         ;
 
-vs_cont:    vs_cont COMMA ID    {$$ = insert_id_list($1, $2);}
-       |    ID                  {$$ = insert_id_list(NULL; $1);}
-       |    /*Nothing*/         {$$ = NULL;}
+vs_cont:    vs_cont ID  {$$ = insert_vardec_without_type($1, $2);}
        ;    
+
+vs_cont_cont:   vs_cont_cont ID COMMA   {$$ = insert_vardec_without_type($1, $2);}
+            |   /*Nothing*/             {$$ = NULL;}
 
 type:   INT     {$$ = d_int;}
     |   FLOAT32 {$$ = d_float;}
     |   BOOL    {$$ = d_bool;}
-    |   STRING  {$$ = d_string;}
+    |   STRING  {$$ = d_str;}
     :
 
-func_declaration:   FUNC ID LPAR fd_cont RPAR fd2_cont func_body    {;}
+func_declaration:   FUNC ID LPAR parameters RPAR fd_cont func_body  {insert_fundec(insert_fun_header($4, $2, $6), $7);}
                 ;
 
-fd_cont:    parameters  {;}
-       |    /*Nothing*/ {;}
-       ; 
-
-fd2_cont:   type        {;}
-        |   /*Nothing*/ {;}
+fd_cont:   type        {$$ = $1;}
+        |   /*Nothing*/ {$$ = d_no_type;}
         ;
 
-parameters: ID type p_cont  {;}
+parameters: p_cont ID type  {$$ = insert_param($1, insert_vardec($2, $3));}
           ; 
 
-p_cont: p_cont COMMA ID type    {;}
-      | /*Nothing*/             {;}
+p_cont: p_cont ID type COMMA    {$$ = insert_param($1, insert_vardec($2, $3));}
+      | /*Nothing*/             {$$ = NULL;}
 
-func_body:  LBRACE vars_and_statements RBRACE   {;}
+func_body:  LBRACE vars_and_statements RBRACE   {$$ = insert_funbody($2);}
          ;
 
-vars_and_statements:    vars_and_statements vas_cont SEMICOLON  {;}
-                   |    /*Nothing*/                             {;}
+vars_and_statements:    vars_and_statements vas_cont SEMICOLON  {$$ = insert_vos_list($1, $2);}
+                   |    /*Nothing*/                             {$$ = NULL;}
                    ;
 
 vas_cont:   var_declaration {;}
