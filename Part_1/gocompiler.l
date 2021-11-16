@@ -83,11 +83,17 @@ void showStr(char* s){
 %%
                             /* Reserved declared    */
 
-"return"                        {show('r'); column += yyleng; BEGIN SEMICHECK;}
-("package")|("return")|("for")  |
-("func")|("if")|("else")        |
-("var")|("int")|("float32")     |
-("bool")|("string")             {show('r'); column += yyleng;}
+"return"                        {show('r'); column += yyleng; BEGIN SEMICHECK; return RETURN;}
+"package"                       {show('r'); column += yyleng;return PACKAGE;}
+"for"                           {show('r'); column += yyleng;return FOR;}
+"func"                          {show('r'); column += yyleng;return FUNC;}
+"if"                            {show('r'); column += yyleng;return IF;}
+"else"                          {show('r'); column += yyleng;return ELSE;}
+"var"                           {show('r'); column += yyleng;return VAR;}
+"int"                           {show('r'); column += yyleng;return INT;}
+"float32"                       {show('r'); column += yyleng;return FLOAT32;}
+"bool"                          {show('r'); column += yyleng;return BOOL;}
+"string"                        {show('r'); column += yyleng;return STRING;}
 
                             /*  Reserved undeclared */
 
@@ -98,37 +104,37 @@ void showStr(char* s){
 ("switch")|("const")|("import") |
 ("fallthrough")|("range")       |
 ("type")|("continue")           |
-(\+\+)|(\-\-)                   {show('R'); column += yyleng;}
+(\+\+)|(\-\-)                   {show('R'); column += yyleng; return RESERVED;}
 
                             /*  Args and puncts */
 
-"fmt.Println"                   {showStr("PRINT"); column += yyleng;}
-"strconv.Atoi"                  {showStr("PARSEINT"); column += yyleng;}
-"os.Args"                       {showStr("CMDARGS"); column += yyleng;}
-\,                              {showStr("COMMA"); column += yyleng;}
-_                               {showStr("BLANKID"); column++;}
-\;                              {showStr("SEMICOLON"); column += yyleng;}
-\=                              {showStr("ASSIGN"); column += yyleng;}
-\*                              {showStr("STAR"); column += yyleng;}
-\/                              {showStr("DIV"); column += yyleng;}
-\-                              {showStr("MINUS"); column += yyleng;}
-\+                              {showStr("PLUS"); column += yyleng;}
-\=\=                            {showStr("EQ"); column += yyleng;}
-\>\=                            {showStr("GE"); column += yyleng;}
-\>                              {showStr("GT"); column += yyleng;}
-\<\=                            {showStr("LE"); column += yyleng;}
-\<                              {showStr("LT"); column += yyleng;}
-\{                              {showStr("LBRACE"); column += yyleng;}
-\}                              {showStr("RBRACE"); column += yyleng; BEGIN SEMICHECK;}
-\[                              {showStr("LSQ"); column += yyleng;}
-\]                              {showStr("RSQ"); column += yyleng; BEGIN SEMICHECK;}
-\(                              {showStr("LPAR"); column += yyleng;}
-\)                              {showStr("RPAR"); column += yyleng; BEGIN SEMICHECK;}
-\%                              {showStr("MOD"); column += yyleng;}
-\!\=                            {showStr("NE"); column += yyleng;}
-\!                              {showStr("NOT"); column += yyleng;}
-\&\&                            {showStr("AND"); column += yyleng;}
-\|\|                            {showStr("OR"); column += yyleng;}
+"fmt.Println"                   {showStr("PRINT"); column += yyleng;return PRINT;}
+"strconv.Atoi"                  {showStr("PARSEINT"); column += yyleng;return PARSEINT;}
+"os.Args"                       {showStr("CMDARGS"); column += yyleng;return CMDARGS;}
+\,                              {showStr("COMMA"); column += yyleng;return COMMA;}
+_                               {showStr("BLANKID"); column++;return BLANKID;}
+\;                              {showStr("SEMICOLON"); column += yyleng;return SEMICOLON;}
+\=                              {showStr("ASSIGN"); column += yyleng;return ASSIGN;}
+\*                              {showStr("STAR"); column += yyleng;return STAR;}
+\/                              {showStr("DIV"); column += yyleng;return DIV;}
+\-                              {showStr("MINUS"); column += yyleng;return MINUS;}
+\+                              {showStr("PLUS"); column += yyleng;return PLUS;}
+\=\=                            {showStr("EQ"); column += yyleng;return EQ;}
+\>\=                            {showStr("GE"); column += yyleng;return GE;}
+\>                              {showStr("GT"); column += yyleng;return GT;}
+\<\=                            {showStr("LE"); column += yyleng;return LE;}
+\<                              {showStr("LT"); column += yyleng;return LT;}
+\{                              {showStr("LBRACE"); column += yyleng;return LBRACE;}
+\}                              {showStr("RBRACE"); column += yyleng; BEGIN SEMICHECK;return RBRACE;}
+\[                              {showStr("LSQ"); column += yyleng;return LSQ;}
+\]                              {showStr("RSQ"); column += yyleng; BEGIN SEMICHECK;return RSQ;}
+\(                              {showStr("LPAR"); column += yyleng;return LPAR;}
+\)                              {showStr("RPAR"); column += yyleng; BEGIN SEMICHECK;return RPAR;}
+\%                              {showStr("MOD"); column += yyleng;return MOD;}
+\!\=                            {showStr("NE"); column += yyleng;return NE;}
+\!                              {showStr("NOT"); column += yyleng;return NOT;}
+\&\&                            {showStr("AND"); column += yyleng;return AND;}
+\|\|                            {showStr("OR"); column += yyleng;return OR;}
 
 
 \"                              {BEGIN STRING; x = column++; y = line;}
@@ -141,17 +147,17 @@ _                               {showStr("BLANKID"); column++;}
 
                             /*  Numbers and literals    */
 
-{float}                         {show('f'); column += yyleng; BEGIN SEMICHECK;}
-0[xX]{hex}+                     {show('i'); column += yyleng; BEGIN SEMICHECK;}
-0[0-7]+                         {show('i'); column += yyleng; BEGIN SEMICHECK;}
+{float}                         {show('f'); column += yyleng; BEGIN SEMICHECK;return REALLIT;}
+0[xX]{hex}+                     {show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT;}
+0[0-7]+                         {show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT;}
 0[0-9]*[89]+[0-9]*              {
                                   fprintf(yyout, "Line %d, column %d: invalid octal constant (%s)\n", line, column, yytext);
                                   column += yyleng;
                                 }
 {num}+                          {
-                                  show('i'); column += yyleng; BEGIN SEMICHECK;
+                                  show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT;
                                 }
-{id}                            show('I'); column += yyleng; BEGIN SEMICHECK;
+{id}                            show('I'); column += yyleng; BEGIN SEMICHECK;return ID;
 {whitespace}                    {column+=yyleng;}
 \n|(\r\n)                       {line++;column = 1;}
 .                               {
@@ -165,7 +171,7 @@ _                               {showStr("BLANKID"); column++;}
                                   column++;
                                   addLit(0);
                                   if(!literror){
-                                    BEGIN SEMICHECK;show('s');
+                                    BEGIN SEMICHECK;show('s');return STRLIT;
                                   }
                                   else BEGIN 0;
                                   literror = false;literalPos = 0;
