@@ -50,7 +50,7 @@
      INT = 266,
      FLOAT32 = 267,
      BOOL = 268,
-     STRING = 269,
+     STRNG = 269,
      PRINT = 270,
      PARSEINT = 271,
      CMDARGS = 272,
@@ -81,7 +81,8 @@
      REALLIT = 297,
      INTLIT = 298,
      ID = 299,
-     STRLIT = 300
+     STRLT = 300,
+     UNARY = 301
    };
 #endif
 /* Tokens.  */
@@ -96,7 +97,7 @@
 #define INT 266
 #define FLOAT32 267
 #define BOOL 268
-#define STRING 269
+#define STRNG 269
 #define PRINT 270
 #define PARSEINT 271
 #define CMDARGS 272
@@ -127,39 +128,21 @@
 #define REALLIT 297
 #define INTLIT 298
 #define ID 299
-#define STRLIT 300
+#define STRLT 300
+#define UNARY 301
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 73 "gocompiler.y"
+#line 62 "gocompiler.y"
 {
-    float* real;
-    int* intlit;
-    char* str;
-    is_dec_list* idl;
-    is_dec* isd;
-    is_vardec* iv;
-    is_vardec_list* ivl;
-    type tp;
-    is_stat_list* isl;
-    is_funbody* ifb;
-    is_vos_list* ivosl;
-    is_var_or_stat* ivos;
-    is_stat* is;
-    is_print* ip;
-    is_expr* ie;
-    is_fun_inv* ifi;
-    is_expr_list* iel;
-    is_parse* iparse;
-    non_assoc_type nat;
-    op_type ot;
-    is_program* iprogram;
+    char* text;
+    node* no;
 }
 /* Line 1529 of yacc.c.  */
-#line 163 "y.tab.h"
+#line 146 "y.tab.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

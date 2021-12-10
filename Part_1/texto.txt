@@ -1,25 +1,29 @@
-package main
+package main;
 
-import (
-    "bufio"
-    "fmt"
-    "os"
-    "strings"
-)
+var (a, b, c, d float32;)
 
-func main() {
+func onefunc(){}
 
-    scanner := bufio.NewScanner(os.Stdin)
+func twofunc(one int){}
 
-    for scanner.Scan() {
+func treefunc(one int, two float32){
+    var argument int;
+}
 
-        ucl := strings.ToUpper(scanner.Text())
+func fourfunc(one int, two float32, three string){}
 
-        fmt.Println(ucl)
-    }
+func fivefunc(one int, two float32, three string, four bool){}
 
-    if err := scanner.Err(); err != nil {
-        fmt.Fprintln(os.Stderr, "error:", err)
-        os.Exit(1)
-    }
+func sixfunc(one int) int {}
+
+func sevenfunc(one int, two float32) float32 {}
+
+func eightfunc(one int, two float32, three string) string {}
+
+func ninefunc(one int, two float32, three string, four bool) bool {}
+
+func tenfunc(one int) int {
+    var (a, b, c, d float32;);
+    var e, f, g, i int;
+    var j int;
 }

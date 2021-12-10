@@ -1,0 +1,249 @@
+%{
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include "functions.h"
+    #include "y.tab.h"
+    int yylex (void);
+    void yyerror(char* s);
+
+    is_program* my_program;
+%}
+
+%token RETURN
+%token RESERVED
+%token PACKAGE
+%token FOR
+%token FUNC
+%token IF
+%token ELSE
+%token VAR
+%token INT
+%token FLOAT32
+%token BOOL
+%token STRNG
+%token PRINT
+%token PARSEINT
+%token CMDARGS
+%token COMMA
+%token BLANKID
+%token SEMICOLON
+%token ASSIGN
+%token STAR
+%token DIV
+%token MINUS
+%token PLUS
+%token EQ
+%token GE
+%token GT
+%token LE
+%token LT
+%token LBRACE
+%token RBRACE
+%token LSQ
+%token RSQ
+%token LPAR
+%token RPAR
+%token MOD
+%token NE
+%token NOT
+%token AND
+%token OR
+%token<real>REALLIT
+%token<intlit>INTLIT
+%token<str>ID STRLT
+
+%type<idl>DECLARATION
+%type<id>VAR_DECLARATION FUNC_DECLARATION VAR_SPEC VS_CONT VS_CONT_CONT
+%type<ivl>PARAMETERS P_CONT
+%type<tp>FD_CONT TYPE
+%type<ifb>FUNC_BODY
+%type<ivosl>VARS_AND_STATEMENTS
+%type<ivos>VAS_CONT
+%type<is>STATEMENT
+%type<isl>ST_CONT ST2_CONT
+%type<ip>ST3_CONT
+%type<ie>EXPR MAYBE_EXPR
+%type<ifi>FUNC_INVOCATION
+%type<iel>MAYBE_EXPRS MORE_EXPRS
+%type<iparse>PARSE_ARGS
+%type<nat>SIG
+%type<ot>COMP
+%type<iprogram>PROGRAM
+
+%union{
+    float* real;
+    int* intlit;
+    char* str;
+    is_dec* id;
+    is_dec_list* idl;
+    is_dec* isd;
+    is_vardec* iv;
+    is_vardec_list* ivl;
+    tpe tp;
+    is_stat_list* isl;
+    is_funbody* ifb;
+    is_vos_list* ivosl;
+    is_var_or_stat* ivos;
+    is_stat* is;
+    is_print* ip;
+    is_expr* ie;
+    is_fun_inv* ifi;
+    is_expr_list* iel;
+    is_parse* iparse;
+    non_assoc_type nat;
+    op_type ot;
+    is_program* iprogram;
+}
+
+%right ASSIGN
+%left GT LT GE LE EQ NE
+%left MINUS PLUS
+%left STAR DIV
+%left MOD AND OR NOT
+%left LPAR RPAR
+%nonassoc lt_sig
+%nonassoc i_sig
+
+%%
+PROGRAM: PACKAGE ID SEMICOLON DECLARATION  {$$ = my_program = program($4, $2);}
+       ;
+
+DECLARATION:    DECLARATION VAR_DECLARATION     {$$ = insert_dec($1, $2);}
+           |    DECLARATION FUNC_DECLARATION    {$$ = insert_dec($1, $2);}
+           |    /*Nothing*/                     {$$ = NULL;}
+           ;    
+
+VAR_DECLARATION:    VAR VAR_SPEC                        {$$ = $2;}
+               |    VAR LPAR VAR_SPEC SEMICOLON RPAR    {$$ = $3;}
+               ;
+
+VAR_SPEC:   VS_CONT TYPE        {$$ = insert_vardec_type($1, $2);}
+        ;
+
+VS_CONT:    VS_CONT_CONT ID  {$$ = insert_vardec_without_type($1, $2);}
+       |    /*Nothing*/      {$$ = NULL;}
+       ;    
+
+VS_CONT_CONT:   VS_CONT_CONT ID COMMA   {$$ = insert_vardec_without_type($1, $2);}
+            |   /*Nothing*/             {$$ = NULL;}
+            ;
+
+TYPE:   INT     {$$ = d_integer;}
+    |   FLOAT32 {$$ = d_float32;}
+    |   BOOL    {$$ = d_bool;}
+    |   STRNG  {$$ = d_str;}
+    ;
+
+FUNC_DECLARATION:   FUNC ID LPAR PARAMETERS RPAR FD_CONT FUNC_BODY  {insert_fundec(insert_fun_header($4, $2, $6), $7);}
+                ;
+
+FD_CONT:   TYPE         {$$ = $1;}
+        |   /*Nothing*/ {$$ = d_no_type;}
+        ;
+
+PARAMETERS: P_CONT ID TYPE  {$$ = insert_param($1, insert_vardec($2, $3));}
+          | /*Nothing*/     {$$ = NULL;}
+          ; 
+
+
+P_CONT: P_CONT ID TYPE COMMA    {$$ = insert_param($1, insert_vardec($2, $3));}
+      | /*Nothing*/             {$$ = NULL;}
+
+
+FUNC_BODY:  LBRACE VARS_AND_STATEMENTS RBRACE   {$$ = insert_funbody($2);}
+         ;
+
+
+VARS_AND_STATEMENTS:    VARS_AND_STATEMENTS VAS_CONT SEMICOLON  {$$ = insert_vos_list($1, $2);}
+                   |    /*Nothing*/                             {$$ = NULL;}
+                   ;
+
+
+VAS_CONT:   VAR_DECLARATION {$$ = insert_var($1);}
+        |   STATEMENT       {$$ = insert_stat($1);}
+        |   /*Nothing*/     {$$ = NULL;}
+        ;
+
+STATEMENT:  ID ASSIGN EXPR                          {$$ = insert_assign($1, $3);}
+         |  LBRACE ST_CONT RBRACE                   {$$ = insert_stat_stat_list($2);}
+         |  IF EXPR LBRACE ST_CONT RBRACE ST2_CONT  {$$ = insert_if($2, $4, $6);}
+         |  FOR MAYBE_EXPR LBRACE ST_CONT RBRACE    {$$ = insert_for($2, $4);}
+         |  RETURN MAYBE_EXPR                       {$$ = insert_return($2);}
+         |  FUNC_INVOCATION                         {$$ = insert_fun_invocation($1);}
+         |  PARSE_ARGS                              {$$ = insert_parse($1);}
+         |  PRINT LPAR ST3_CONT RPAR                {$$ = insert_print($3);}
+         ;
+
+ST_CONT:    ST_CONT STATEMENT SEMICOLON {$$ = insert_stat_list($1, $2);}
+       |    /*Nothing*/         {$$ = NULL;}
+
+ST2_CONT:   ELSE LBRACE ST_CONT RBRACE  {$$ = $3;}
+        |   /*Nothing*/                 {$$ = NULL;}
+        ;
+
+ST3_CONT:   EXPR    {$$ = print_expr($1);}
+        |   STRLT   {$$ = print_strlit($1);}
+        ;
+
+MAYBE_EXPR: EXPR        {$$ = $1;}    
+          | /*Nothing*/ {$$ = NULL;}
+          ;
+
+
+FUNC_INVOCATION:    ID LPAR MAYBE_EXPRS RPAR {$$ = insert_fun_inv($1, $3);}
+               ;
+
+MAYBE_EXPRS:    MORE_EXPRS EXPR {$$ = insert_expr_list($1, $2);}    
+           |    /*Nothing*/     {$$ = NULL;}
+           ;
+
+MORE_EXPRS: MORE_EXPRS EXPR COMMA   {$$ = insert_expr_list($1, $2);}
+          | /*Northing*/            {$$ = NULL;}
+          ;
+
+PARSE_ARGS: ID COMMA BLANKID ASSIGN PARSEINT LPAR CMDARGS LSQ EXPR RSQ RPAR {$$ = insert_parse_arg($1, $9);}
+          ;
+
+EXPR:   EXPR COMP EXPR %prec lt_sig {$$ = insert_math($2, $1, $3);}
+    |   SIG EXPR %prec i_sig        {$$ = insert_non_assoc($1, $2);}
+    |   INTLIT                      {$$ = insert_int($1);}
+    |   REALLIT                     {$$ = insert_float($1);}
+    |   ID                          {$$ = insert_id($1);}
+    |   FUNC_INVOCATION             {$$ = insert_fun_inv_expr($1);}
+    |   LPAR EXPR RPAR              {$$ = $2;}
+    ;
+
+SIG:    MINUS   {$$ = d_minus;}
+   |    PLUS    {$$ = d_plus;}
+   |    NOT     {$$ = d_not;}
+   ;
+
+COMP:   OR      {$$ = d_or;}
+    |   AND     {$$ = d_and;}
+    |   LT      {$$ = d_lt;}
+    |   GT      {$$ = d_gt;}
+    |   EQ      {$$ = d_eq;}
+    |   NE      {$$ = d_ne;}
+    |   LE      {$$ = d_le;}
+    |   GE      {$$ = d_ge;}
+    |   PLUS    {$$ = d_pl;}
+    |   MINUS   {$$ = d_min;}
+    |   STAR    {$$ = d_star;}
+    |   DIV     {$$ = d_div;}
+    |   MOD     {$$ = d_mod;}
+    ;
+
+%%
+
+void yyerror(char *msg) {
+    printf("%s", msg);
+}
+
+int main(int argc, char *argv[]){
+  if ((argc == 2 && strcmp(argv[1], "-l") == 0)||
+      (argc == 3 && strcmp(argv[2], "-l") == 0)) mayprint = 1;
+  yyparse();
+  print_program(my_program);
+  return 0;
+}

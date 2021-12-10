@@ -1,11 +1,17 @@
+/* João Ricardo Miranda Botelho 2019155348  */
+/* José Pedro Silvério Braz     2017247538  */
+
 %{
-    #include "lex.yy.c"
     #include <stdio.h>
     #include <stdlib.h>
+    #include <string.h>
     #include "functions.h"
-    int yylex(void);
+    #include "y.tab.h"
+    int yylex (void);
     void yyerror(char* s);
-    is_program* my_program;
+    node* my_program;
+    bool error_occ = false;
+    bool pos_str_err = false;
 %}
 
 %token RETURN
@@ -19,7 +25,7 @@
 %token INT
 %token FLOAT32
 %token BOOL
-%token STRING
+%token STRNG
 %token PRINT
 %token PARSEINT
 %token CMDARGS
@@ -47,184 +53,274 @@
 %token NOT
 %token AND
 %token OR
-%token<real>REALLIT
-%token<intlit>INTLIT
-%token<str>ID STRLIT
+%token<text>REALLIT INTLIT ID STRLT
 
-%type<idl>declaration
-%type<isd>var_declaration func_declaration
-%type<iv>var_spec vs_cont vs_cont_cont
-%type<ivl>parameters p_cont
-%type<tp>fd_cont type
-%type<ifb>func_body
-%type<ivosl>vars_and_statements
-%type<ivos>vas_cont
-%type<is>statement
-%type<isl>st_cont st2_cont
-%type<ip>st3_cont
-%type<ie>expr maybe_expr
-%type<ifi>func_invocation
-%type<iel>maybe_exprs more_exprs
-%type<iparse>parse_args
-%type<nat>sig
-%type<ot>comp
-%type<iprogram>program
+%type<no>DECLARATION VAR_DECLARATION FUNC_DECLARATION VAR_SPEC VS_CONT VS_CONT_CONT PARAMETERS P_CONT FD_CONT TYPE FUNC_BODY
+%type<no>VARS_AND_STATEMENTS VAS_CONT STATEMENT ST_CONT ST2_CONT ST3_CONT EXPR MAYBE_EXPR FUNC_INVOCATION MAYBE_EXPRS MORE_EXPRS
+%type<no>PROGRAM
 
 %union{
-    float* real;
-    int* intlit;
-    char* str;
-    is_dec_list* idl;
-    is_dec* isd;
-    is_vardec* iv;
-    is_vardec_list* ivl;
-    type tp;
-    is_stat_list* isl;
-    is_funbody* ifb;
-    is_vos_list* ivosl;
-    is_var_or_stat* ivos;
-    is_stat* is;
-    is_print* ip;
-    is_expr* ie;
-    is_fun_inv* ifi;
-    is_expr_list* iel;
-    is_parse* iparse;
-    non_assoc_type nat;
-    op_type ot;
-    is_program* iprogram;
+    char* text;
+    node* no;
 }
 
 %right ASSIGN
-%left MINUS PLUS
-%left STAR DIV
-%left MOD
+%left OR
+%left AND
+%left GT GE LT LE EQ NE
+%left PLUS MINUS
+%left STAR DIV MOD
+%left UNARY
 
 %%
-program: PACKAGE ID SEMICOLON declaration  {$$ = my_program = program($4, $2);}
+PROGRAM: PACKAGE ID SEMICOLON DECLARATION  {my_program = create("Program"); $$ = add_down(my_program, $4);}
        ;
 
-declaration:    declaration var_declaration     {$$ = insert_dec($1, $2);}
-           |    declaration func_declaration    {$$ = insert_dec($1, $2);}
-           |    /*Nothing*/                     {$$ = NULL;}
+DECLARATION:    DECLARATION VAR_DECLARATION SEMICOLON   {$$ = add_next($1, $2);}
+           |    DECLARATION FUNC_DECLARATION SEMICOLON  {node* tmp = create("FuncDecl"); add_down(tmp, $2); $$ = add_next($1, tmp);}
+           |    /*Nothing*/                             {$$ = NULL;}
            ;    
 
-var_declaration:    VAR var_spec                        {$$ = $2;}
-               |    VAR LPAR var_spec SEMICOLON RPAR    {$$ = $3;}
+VAR_DECLARATION:    VAR VAR_SPEC                        {$$ = $2;}
+               |    VAR LPAR VAR_SPEC SEMICOLON RPAR    {$$ = $3;}
                ;
 
-var_spec:   vs_cont type        {$$ = insert_vardec_type($1, $2);}
+VAR_SPEC:   VS_CONT TYPE        {
+                                    node* tmp = create("VarDecl");
+                                    node* to_loop = $1;
+                                    node* tp = $2;
+                                    add_down(tmp, $2);
+                                    add_down(tmp, create(to_loop->val));    
+                                    to_loop = to_loop->next;
+                                    node* tmp_2 = NULL;
+                                    for(;to_loop != NULL; to_loop=to_loop->next){
+                                        tmp_2 = create("VarDecl");
+                                        add_down(tmp_2, create(tp->val));
+                                        add_down(tmp_2, create(to_loop->val));
+                                        add_next(tmp, tmp_2);
+                                    }
+                                    $$ = tmp;
+                                }
         ;
 
-vs_cont:    vs_cont_cont ID  {$$ = insert_vardec_without_type($1, $2);}
-       |    /*Nothing*/ {$$ = NULL;}
+VS_CONT:    VS_CONT_CONT ID {
+                                char* aux = (char*)malloc(strlen($2)+5);
+                                sprintf(aux, "Id(%s)", $2);
+                                node* tmp = create(aux);
+                                $$ = add_next($1, tmp);
+                            }
        ;    
 
-vs_cont_cont:   vs_cont_cont ID COMMA   {$$ = insert_vardec_without_type($1, $2);}
+VS_CONT_CONT:   VS_CONT_CONT ID COMMA   {   
+                                            char* aux = (char*)malloc(strlen($2)+5);
+                                            sprintf(aux, "Id(%s)", $2);
+                                            node* tmp = create(aux);
+                                            $$ = add_next($1, tmp);
+                                        }
             |   /*Nothing*/             {$$ = NULL;}
             ;
 
-type:   INT     {$$ = d_integer;}
-    |   FLOAT32 {$$ = d_float32;}
-    |   BOOL    {$$ = d_bool;}
-    |   STRING  {$$ = d_str;}
+TYPE:   INT     {$$ = create("Int");}
+    |   FLOAT32 {$$ = create("Float32");}
+    |   BOOL    {$$ = create("Bool");}
+    |   STRNG  {$$ = create("String");}
     ;
 
-func_declaration:   FUNC ID LPAR parameters RPAR fd_cont func_body  {insert_fundec(insert_fun_header($4, $2, $6), $7);}
+FUNC_DECLARATION:   FUNC ID LPAR PARAMETERS RPAR FD_CONT FUNC_BODY  {
+                                                                        node* fheader = create("FuncHeader");
+                                                                        node* fbody = create("FuncBody");
+                                                                        char* aux = (char*)malloc(strlen($2)+5);
+                                                                        sprintf(aux, "Id(%s)", $2);
+                                                                        node* tmp = create(aux);
+                                                                        add_down(fheader, tmp);
+                                                                        add_down(fheader, $6);
+                                                                        tmp = create("FuncParams");
+                                                                        add_down(tmp, $4);
+                                                                        add_down(fheader, tmp);
+                                                                        add_down(fbody, $7);
+                                                                        $$ = add_next(fheader, fbody);
+                                                                        free(aux);
+                                                                    }
                 ;
 
-fd_cont:   type         {$$ = $1;}
-        |   /*Nothing*/ {$$ = d_no_type;}
+FD_CONT:   TYPE         {$$ = $1;}
+        |   /*Nothing*/ {$$ = NULL;}
         ;
 
-parameters: p_cont ID type  {$$ = insert_param($1, insert_vardec($2, $3));}
+PARAMETERS: P_CONT ID TYPE  {
+                                char* aux = (char*)malloc(strlen($2)+5);
+                                sprintf(aux, "Id(%s)", $2);
+                                node* tmp = create(aux);
+                                tmp = add_next($3, tmp);
+                                node* param = create("ParamDecl");
+                                add_down(param, tmp);
+                                $$ = add_next($1, param);
+                                free(aux);
+                            }
+          | /*Nothing*/     {$$ = NULL;}
           ; 
 
 
-p_cont: p_cont ID type COMMA    {$$ = insert_param($1, insert_vardec($2, $3));}
+P_CONT: P_CONT ID TYPE COMMA    {
+                                    char* aux = (char*)malloc(strlen($2)+5);
+                                    sprintf(aux, "Id(%s)", $2);
+                                    node* tmp = create(aux);
+                                    tmp = add_next($3, tmp);
+                                    node* param = create("ParamDecl");
+                                    add_down(param, tmp);
+                                    $$ = add_next($1, param);
+                                    free(aux);
+                                }
       | /*Nothing*/             {$$ = NULL;}
 
 
-func_body:  LBRACE vars_and_statements RBRACE   {$$ = insert_funbody($2);}
+FUNC_BODY:  LBRACE VARS_AND_STATEMENTS RBRACE   {$$ = $2;}
          ;
 
 
-vars_and_statements:    vars_and_statements vas_cont SEMICOLON  {$$ = insert_vos_list($1, $2);}
+VARS_AND_STATEMENTS:    VARS_AND_STATEMENTS VAS_CONT SEMICOLON  {$$ = add_next($1, $2);}
                    |    /*Nothing*/                             {$$ = NULL;}
                    ;
 
 
-vas_cont:   var_declaration {$$ = insert_var($1);}
-        |   statement       {$$ = insert_stat($1);}
+VAS_CONT:   VAR_DECLARATION {$$ = $1;}
+        |   STATEMENT       {$$ = $1;}
         |   /*Nothing*/     {$$ = NULL;}
         ;
 
-statement:  ID ASSIGN expr                          {$$ = insert_assign($1, $3);}
-         |  LBRACE st_cont RBRACE                   {$$ = insert_stat_stat_list($2);}
-         |  IF expr LBRACE st_cont RBRACE st2_cont  {$$ = insert_if($2, $4, $6);}
-         |  FOR maybe_expr LBRACE st_cont RBRACE    {$$ = insert_for($2, $4);}
-         |  RETURN maybe_expr                       {$$ = insert_return($2);}
-         |  func_invocation                         {$$ = insert_fun_invocation($1);}
-         |  parse_args                              {$$ = insert_parse($1);}
-         |  PRINT LPAR st3_cont RPAR                {$$ = insert_print($3);}
+STATEMENT:  ID ASSIGN EXPR                                                  {
+                                                                                char* aux = (char*)malloc(strlen($1)+5);
+                                                                                sprintf(aux, "Id(%s)", $1);
+                                                                                node* tmp = create(aux);
+                                                                                node* tmp_2 = create("Assign");
+                                                                                tmp_2 = add_down(tmp_2, tmp);
+                                                                                $$ = add_down(tmp_2, $3);
+                                                                            }
+         |  LBRACE ST_CONT RBRACE                                           {
+                                                                                if (count_depth($2) < 2) $$ = $2;
+                                                                                else{
+                                                                                    node* tmp = create("Block"); 
+                                                                                    $$ = add_down(tmp,$2);
+                                                                                }
+                                                                            }
+         |  IF EXPR LBRACE ST_CONT RBRACE ST2_CONT                          {
+                                                                                node* tmp = create("If"); 
+                                                                                add_down(tmp, $2);
+                                                                                node* tmp_2 = create("Block"); 
+                                                                                add_down(tmp_2, $4);
+                                                                                add_down(tmp, tmp_2);
+                                                                                node* tmp_3 = create("Block");
+                                                                                add_down(tmp_3, $6);
+                                                                                $$ = add_down(tmp, tmp_3);
+                                                                            }
+         |  FOR MAYBE_EXPR LBRACE ST_CONT RBRACE                            {
+                                                                                node* tmp = create("For"); 
+                                                                                add_down(tmp, $2); 
+                                                                                node* tmp_2 = create("Block");
+                                                                                add_down(tmp_2, $4); 
+                                                                                $$ = add_down(tmp, tmp_2);
+                                                                            }
+         |  RETURN MAYBE_EXPR                                               {node* tmp = create("Return"); $$ = add_down(tmp, $2);}
+         |  FUNC_INVOCATION                                                 {node* tmp = create("Call"); $$ = add_down(tmp, $1);}
+         |  ID COMMA BLANKID ASSIGN PARSEINT LPAR CMDARGS LSQ EXPR RSQ RPAR {
+                                                                                char* aux = (char*)malloc(strlen($1)+5);
+                                                                                sprintf(aux, "Id(%s)", $1);
+                                                                                node* tmp = create(aux);
+                                                                                add_next(tmp, $9);
+                                                                                node* tmp_2 = create("ParseArgs");
+                                                                                $$ = add_down(tmp_2, tmp);
+                                                                            }
+         |  ID COMMA BLANKID ASSIGN PARSEINT LPAR error RPAR                {$$ = NULL; error_occ = true;}
+         |  PRINT LPAR ST3_CONT RPAR                                        {node* tmp = create("Print"); $$ = add_down(tmp, $3);}
+         |  error                                                           {$$ = NULL; error_occ = true;}
          ;
 
-st_cont:    st_cont statement SEMICOLON {$$ = insert_stat_list($1, $2);}
-       |    /*Nothing*/         {$$ = NULL;}
+ST_CONT:    ST_CONT STATEMENT SEMICOLON {$$ = add_next($1, $2);}
+       |    /*Nothing*/                 {$$ = NULL;}
 
-st2_cont:   ELSE LBRACE st_cont RBRACE  {$$ = $3;}
+ST2_CONT:   ELSE LBRACE ST_CONT RBRACE  {$$ = $3;}
         |   /*Nothing*/                 {$$ = NULL;}
         ;
 
-st3_cont:   expr    {$$ = print_expr($1);}
-        |   STRLIT  {$$ = print_strlit($1);}
+ST3_CONT:   EXPR    {$$ = $1;}
+        |   STRLT   {
+                        char* aux = (char*)malloc(strlen($1)+9);
+                        sprintf(aux, "StrLit(\"%s\")", $1);
+                        $$ = create(aux);
+                    }
         ;
 
-maybe_expr: expr        {$$ = $1;}    
+MAYBE_EXPR: EXPR        {$$ = $1;}    
           | /*Nothing*/ {$$ = NULL;}
           ;
 
 
-func_invocation:    ID LPAR maybe_exprs RPAR {$$ = insert_fun_inv($1, $3);}
+FUNC_INVOCATION:    ID LPAR MAYBE_EXPRS RPAR    {
+                                                    char* aux = (char*)malloc(strlen($1)+5);
+                                                    sprintf(aux, "Id(%s)", $1);
+                                                    node* tmp = create(aux);
+                                                    $$ = add_next(tmp, $3);
+                                                }
+               |    ID LPAR error RPAR          {$$ = NULL; error_occ = true;}
                ;
 
-maybe_exprs:    more_exprs expr  {$$ = insert_expr_list($1, $2);}    
+MAYBE_EXPRS:    MORE_EXPRS EXPR {$$ = add_next($1, $2);}    
            |    /*Nothing*/     {$$ = NULL;}
            ;
 
-more_exprs: more_exprs expr COMMA   {$$ = insert_expr_list($1, $2);}
+MORE_EXPRS: MORE_EXPRS EXPR COMMA   {$$ = add_next($1, $2);}
           | /*Northing*/            {$$ = NULL;}
           ;
 
-parse_args: ID COMMA BLANKID ASSIGN PARSEINT LPAR CMDARGS LSQ expr RSQ RPAR {$$ = insert_parse_arg($1, $9);}
-          ;
-
-expr:   expr comp expr  {$$ = insert_math($2, $1, $3);}
-    |   sig expr        {$$ = insert_non_assoc($1, $2);}
-    |   INTLIT          {$$ = insert_int($1);}
-    |   REALLIT         {$$ = insert_float($1);}
-    |   ID              {$$ = insert_id($1);}
-    |   func_invocation {$$ = insert_fun_inv_expr($1);}
-    |   LPAR expr RPAR  {$$ = $2;}
-    ;
-
-sig:    MINUS   {$$ = d_minus;}
-   |    PLUS    {$$ = d_plus;}
-   |    NOT     {$$ = d_not;}
-   ;
-
-comp:   OR      {$$ = d_or;}
-    |   AND     {$$ = d_and;}
-    |   LT      {$$ = d_lt;}
-    |   GT      {$$ = d_gt;}
-    |   EQ      {$$ = d_eq;}
-    |   NE      {$$ = d_ne;}
-    |   LE      {$$ = d_le;}
-    |   GE      {$$ = d_ge;}
-    |   PLUS    {$$ = d_pl;}
-    |   MINUS   {$$ = d_min;}
-    |   STAR    {$$ = d_star;}
-    |   DIV     {$$ = d_div;}
-    |   MOD     {$$ = d_mod;}
+EXPR:   EXPR OR EXPR                {node* tmp = create("Or");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR LT EXPR                {node* tmp = create("Lt");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR GT EXPR                {node* tmp = create("Gt");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR EQ EXPR                {node* tmp = create("Eq");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR NE EXPR                {node* tmp = create("Ne");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR LE EXPR                {node* tmp = create("Le");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR GE EXPR                {node* tmp = create("Ge");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR AND EXPR               {node* tmp = create("And");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR PLUS EXPR              {node* tmp = create("Add");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR MINUS EXPR             {node* tmp = create("Sub");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR STAR EXPR              {node* tmp = create("Mul");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR DIV EXPR               {node* tmp = create("Div");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   EXPR MOD EXPR               {node* tmp = create("Mod");add_down(tmp, $1); $$ = add_down(tmp, $3);}
+    |   MINUS EXPR %prec UNARY      {node* tmp = create("Minus"); $$ = add_down(tmp, $2);}
+    |   PLUS EXPR %prec UNARY       {node* tmp = create("Plus"); $$ = add_down(tmp, $2);}
+    |   NOT EXPR %prec UNARY        {node* tmp = create("Not"); $$ = add_down(tmp, $2);}
+    |   INTLIT                      {
+                                        char* aux = (char*)malloc(strlen($1)+9);
+                                        sprintf(aux, "IntLit(%s)", $1);
+                                        $$ = create(aux);          
+                                        free(aux);                        
+                                    }
+    |   REALLIT                     {
+                                        char* aux = (char*)malloc(strlen($1)+10);
+                                        sprintf(aux, "RealLit(%s)", $1);
+                                        $$ = create(aux);
+                                        free(aux);                                  
+                                    }
+    |   ID                          {
+                                        char* aux = (char*)malloc(strlen($1)+5);
+                                        sprintf(aux, "Id(%s)", $1);
+                                        $$ = create(aux); 
+                                        free(aux);                                 
+                                    }
+    |   FUNC_INVOCATION             {node* tmp = create("Call"); $$ = add_down(tmp, $1);}
+    |   LPAR EXPR RPAR              {$$ = $2;}
+    |   LPAR error RPAR             {$$ = NULL; error_occ = true;}
     ;
 
 %%
+
+int main(int argc, char *argv[]){
+  if ((argc >= 2 && strcmp(argv[1], "-l") == 0)||
+      (argc >= 3 && strcmp(argv[2], "-l") == 0)) mayprint = 1;
+  yyparse();
+  build_symtab(my_program, NULL, NULL);
+  //print_table();
+  if ((argc >= 2 && strcmp(argv[1], "-t") == 0)||
+      (argc >= 3 && strcmp(argv[2], "-t") == 0)) if (!error_occ)print_tree(my_program, NULL, 0, supposed_file());
+    print_noted_tree(my_program, NULL, 0, stdout);
+  return 0;
+}

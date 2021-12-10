@@ -77,7 +77,7 @@
      INT = 266,
      FLOAT32 = 267,
      BOOL = 268,
-     STRING = 269,
+     STRNG = 269,
      PRINT = 270,
      PARSEINT = 271,
      CMDARGS = 272,
@@ -108,7 +108,8 @@
      REALLIT = 297,
      INTLIT = 298,
      ID = 299,
-     STRLIT = 300
+     STRLT = 300,
+     UNARY = 301
    };
 #endif
 /* Tokens.  */
@@ -123,7 +124,7 @@
 #define INT 266
 #define FLOAT32 267
 #define BOOL 268
-#define STRING 269
+#define STRNG 269
 #define PRINT 270
 #define PARSEINT 271
 #define CMDARGS 272
@@ -154,21 +155,25 @@
 #define REALLIT 297
 #define INTLIT 298
 #define ID 299
-#define STRLIT 300
+#define STRLT 300
+#define UNARY 301
 
 
 
 
 /* Copy the first part of user declarations.  */
-#line 1 "gocompiler.y"
+#line 4 "gocompiler.y"
 
-    #include "lex.yy.c"
     #include <stdio.h>
     #include <stdlib.h>
+    #include <string.h>
     #include "functions.h"
-    int yylex(void);
+    #include "y.tab.h"
+    int yylex (void);
     void yyerror(char* s);
-    is_program* my_program;
+    node* my_program;
+    bool error_occ = false;
+    bool pos_str_err = false;
 
 
 /* Enabling traces.  */
@@ -191,32 +196,13 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 73 "gocompiler.y"
+#line 62 "gocompiler.y"
 {
-    float* real;
-    int* intlit;
-    char* str;
-    is_dec_list* idl;
-    is_dec* isd;
-    is_vardec* iv;
-    is_vardec_list* ivl;
-    type tp;
-    is_stat_list* isl;
-    is_funbody* ifb;
-    is_vos_list* ivosl;
-    is_var_or_stat* ivos;
-    is_stat* is;
-    is_print* ip;
-    is_expr* ie;
-    is_fun_inv* ifi;
-    is_expr_list* iel;
-    is_parse* iparse;
-    non_assoc_type nat;
-    op_type ot;
-    is_program* iprogram;
+    char* text;
+    node* no;
 }
 /* Line 193 of yacc.c.  */
-#line 220 "y.tab.c"
+#line 206 "y.tab.c"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
@@ -229,7 +215,7 @@ typedef union YYSTYPE
 
 
 /* Line 216 of yacc.c.  */
-#line 233 "y.tab.c"
+#line 219 "y.tab.c"
 
 #ifdef short
 # undef short
@@ -444,20 +430,20 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  4
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   217
+#define YYLAST   323
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  46
+#define YYNTOKENS  47
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  27
+#define YYNNTS  24
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  73
+#define YYNRULES  74
 /* YYNRULES -- Number of states.  */
-#define YYNSTATES  120
+#define YYNSTATES  140
 
 /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   300
+#define YYMAXUTOK   301
 
 #define YYTRANSLATE(YYX)						\
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
@@ -495,7 +481,7 @@ static const yytype_uint8 yytranslate[] =
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
       35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
-      45
+      45,    46
 };
 
 #if YYDEBUG
@@ -503,53 +489,57 @@ static const yytype_uint8 yytranslate[] =
    YYRHS.  */
 static const yytype_uint8 yyprhs[] =
 {
-       0,     0,     3,     8,    11,    14,    15,    18,    24,    27,
-      30,    31,    35,    36,    38,    40,    42,    44,    52,    54,
-      55,    59,    64,    65,    69,    73,    74,    76,    78,    79,
-      83,    87,    94,   100,   103,   105,   107,   112,   116,   117,
-     122,   123,   125,   127,   129,   130,   135,   138,   139,   143,
-     144,   156,   160,   163,   165,   167,   169,   171,   175,   177,
-     179,   181,   183,   185,   187,   189,   191,   193,   195,   197,
-     199,   201,   203,   205
+       0,     0,     3,     8,    12,    16,    17,    20,    26,    29,
+      32,    36,    37,    39,    41,    43,    45,    53,    55,    56,
+      60,    61,    66,    67,    71,    75,    76,    78,    80,    81,
+      85,    89,    96,   102,   105,   107,   119,   128,   133,   135,
+     139,   140,   145,   146,   148,   150,   152,   153,   158,   163,
+     166,   167,   171,   172,   176,   180,   184,   188,   192,   196,
+     200,   204,   208,   212,   216,   220,   224,   227,   230,   233,
+     235,   237,   239,   241,   245
 };
 
 /* YYRHS -- A `-1'-separated list of the rules' RHS.  */
 static const yytype_int8 yyrhs[] =
 {
-      47,     0,    -1,     5,    44,    20,    48,    -1,    48,    49,
-      -1,    48,    54,    -1,    -1,    10,    50,    -1,    10,    35,
-      50,    20,    36,    -1,    51,    53,    -1,    52,    44,    -1,
-      -1,    52,    44,    18,    -1,    -1,    11,    -1,    12,    -1,
-      13,    -1,    14,    -1,     7,    44,    35,    56,    36,    55,
-      58,    -1,    53,    -1,    -1,    57,    44,    53,    -1,    57,
-      44,    53,    18,    -1,    -1,    31,    59,    32,    -1,    59,
-      60,    20,    -1,    -1,    49,    -1,    61,    -1,    -1,    44,
-      21,    70,    -1,    31,    62,    32,    -1,     8,    70,    31,
-      62,    32,    63,    -1,     6,    65,    31,    62,    32,    -1,
-       3,    65,    -1,    66,    -1,    69,    -1,    15,    35,    64,
-      36,    -1,    62,    61,    20,    -1,    -1,     9,    31,    62,
-      32,    -1,    -1,    70,    -1,    45,    -1,    70,    -1,    -1,
-      44,    35,    67,    36,    -1,    68,    70,    -1,    -1,    68,
-      70,    18,    -1,    -1,    44,    18,    19,    21,    16,    35,
-      17,    33,    70,    34,    36,    -1,    70,    72,    70,    -1,
-      71,    70,    -1,    43,    -1,    42,    -1,    44,    -1,    66,
-      -1,    35,    70,    36,    -1,    24,    -1,    25,    -1,    39,
-      -1,    41,    -1,    40,    -1,    30,    -1,    28,    -1,    26,
-      -1,    38,    -1,    29,    -1,    27,    -1,    25,    -1,    24,
-      -1,    22,    -1,    23,    -1,    37,    -1
+      48,     0,    -1,     5,    44,    20,    49,    -1,    49,    50,
+      20,    -1,    49,    55,    20,    -1,    -1,    10,    51,    -1,
+      10,    35,    51,    20,    36,    -1,    52,    54,    -1,    53,
+      44,    -1,    53,    44,    18,    -1,    -1,    11,    -1,    12,
+      -1,    13,    -1,    14,    -1,     7,    44,    35,    57,    36,
+      56,    59,    -1,    54,    -1,    -1,    58,    44,    54,    -1,
+      -1,    58,    44,    54,    18,    -1,    -1,    31,    60,    32,
+      -1,    60,    61,    20,    -1,    -1,    50,    -1,    62,    -1,
+      -1,    44,    21,    70,    -1,    31,    63,    32,    -1,     8,
+      70,    31,    63,    32,    64,    -1,     6,    66,    31,    63,
+      32,    -1,     3,    66,    -1,    67,    -1,    44,    18,    19,
+      21,    16,    35,    17,    33,    70,    34,    36,    -1,    44,
+      18,    19,    21,    16,    35,     1,    36,    -1,    15,    35,
+      65,    36,    -1,     1,    -1,    63,    62,    20,    -1,    -1,
+       9,    31,    63,    32,    -1,    -1,    70,    -1,    45,    -1,
+      70,    -1,    -1,    44,    35,    68,    36,    -1,    44,    35,
+       1,    36,    -1,    69,    70,    -1,    -1,    69,    70,    18,
+      -1,    -1,    70,    41,    70,    -1,    70,    30,    70,    -1,
+      70,    28,    70,    -1,    70,    26,    70,    -1,    70,    38,
+      70,    -1,    70,    29,    70,    -1,    70,    27,    70,    -1,
+      70,    40,    70,    -1,    70,    25,    70,    -1,    70,    24,
+      70,    -1,    70,    22,    70,    -1,    70,    23,    70,    -1,
+      70,    37,    70,    -1,    24,    70,    -1,    25,    70,    -1,
+      39,    70,    -1,    43,    -1,    42,    -1,    44,    -1,    67,
+      -1,    35,    70,    36,    -1,    35,     1,    36,    -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_uint16 yyrline[] =
 {
-       0,   103,   103,   106,   107,   108,   111,   112,   115,   118,
-     119,   122,   123,   126,   127,   128,   129,   132,   135,   136,
-     139,   143,   144,   147,   151,   152,   156,   157,   158,   161,
-     162,   163,   164,   165,   166,   167,   168,   171,   172,   174,
-     175,   178,   179,   182,   183,   187,   190,   191,   194,   195,
-     198,   201,   202,   203,   204,   205,   206,   207,   210,   211,
-     212,   215,   216,   217,   218,   219,   220,   221,   222,   223,
-     224,   225,   226,   227
+       0,    76,    76,    79,    80,    81,    84,    85,    88,   106,
+     114,   120,   123,   124,   125,   126,   129,   146,   147,   150,
+     160,   164,   174,   177,   181,   182,   186,   187,   188,   191,
+     199,   206,   216,   223,   224,   225,   233,   234,   235,   238,
+     239,   241,   242,   245,   246,   253,   254,   258,   264,   267,
+     268,   271,   272,   275,   276,   277,   278,   279,   280,   281,
+     282,   283,   284,   285,   286,   287,   288,   289,   290,   291,
+     297,   303,   309,   310,   311
 };
 #endif
 
@@ -559,16 +549,16 @@ static const yytype_uint8 yyrline[] =
 static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "RETURN", "RESERVED", "PACKAGE", "FOR",
-  "FUNC", "IF", "ELSE", "VAR", "INT", "FLOAT32", "BOOL", "STRING", "PRINT",
+  "FUNC", "IF", "ELSE", "VAR", "INT", "FLOAT32", "BOOL", "STRNG", "PRINT",
   "PARSEINT", "CMDARGS", "COMMA", "BLANKID", "SEMICOLON", "ASSIGN", "STAR",
   "DIV", "MINUS", "PLUS", "EQ", "GE", "GT", "LE", "LT", "LBRACE", "RBRACE",
   "LSQ", "RSQ", "LPAR", "RPAR", "MOD", "NE", "NOT", "AND", "OR", "REALLIT",
-  "INTLIT", "ID", "STRLIT", "$accept", "program", "declaration",
-  "var_declaration", "var_spec", "vs_cont", "vs_cont_cont", "type",
-  "func_declaration", "fd_cont", "parameters", "p_cont", "func_body",
-  "vars_and_statements", "vas_cont", "statement", "st_cont", "st2_cont",
-  "st3_cont", "maybe_expr", "func_invocation", "maybe_exprs", "more_exprs",
-  "parse_args", "expr", "sig", "comp", 0
+  "INTLIT", "ID", "STRLT", "UNARY", "$accept", "PROGRAM", "DECLARATION",
+  "VAR_DECLARATION", "VAR_SPEC", "VS_CONT", "VS_CONT_CONT", "TYPE",
+  "FUNC_DECLARATION", "FD_CONT", "PARAMETERS", "P_CONT", "FUNC_BODY",
+  "VARS_AND_STATEMENTS", "VAS_CONT", "STATEMENT", "ST_CONT", "ST2_CONT",
+  "ST3_CONT", "MAYBE_EXPR", "FUNC_INVOCATION", "MAYBE_EXPRS", "MORE_EXPRS",
+  "EXPR", 0
 };
 #endif
 
@@ -581,34 +571,34 @@ static const yytype_uint16 yytoknum[] =
      265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
      275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
      285,   286,   287,   288,   289,   290,   291,   292,   293,   294,
-     295,   296,   297,   298,   299,   300
+     295,   296,   297,   298,   299,   300,   301
 };
 # endif
 
 /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_uint8 yyr1[] =
 {
-       0,    46,    47,    48,    48,    48,    49,    49,    50,    51,
-      51,    52,    52,    53,    53,    53,    53,    54,    55,    55,
-      56,    57,    57,    58,    59,    59,    60,    60,    60,    61,
-      61,    61,    61,    61,    61,    61,    61,    62,    62,    63,
-      63,    64,    64,    65,    65,    66,    67,    67,    68,    68,
-      69,    70,    70,    70,    70,    70,    70,    70,    71,    71,
-      71,    72,    72,    72,    72,    72,    72,    72,    72,    72,
-      72,    72,    72,    72
+       0,    47,    48,    49,    49,    49,    50,    50,    51,    52,
+      53,    53,    54,    54,    54,    54,    55,    56,    56,    57,
+      57,    58,    58,    59,    60,    60,    61,    61,    61,    62,
+      62,    62,    62,    62,    62,    62,    62,    62,    62,    63,
+      63,    64,    64,    65,    65,    66,    66,    67,    67,    68,
+      68,    69,    69,    70,    70,    70,    70,    70,    70,    70,
+      70,    70,    70,    70,    70,    70,    70,    70,    70,    70,
+      70,    70,    70,    70,    70
 };
 
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
 static const yytype_uint8 yyr2[] =
 {
-       0,     2,     4,     2,     2,     0,     2,     5,     2,     2,
-       0,     3,     0,     1,     1,     1,     1,     7,     1,     0,
-       3,     4,     0,     3,     3,     0,     1,     1,     0,     3,
-       3,     6,     5,     2,     1,     1,     4,     3,     0,     4,
-       0,     1,     1,     1,     0,     4,     2,     0,     3,     0,
-      11,     3,     2,     1,     1,     1,     1,     3,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1
+       0,     2,     4,     3,     3,     0,     2,     5,     2,     2,
+       3,     0,     1,     1,     1,     1,     7,     1,     0,     3,
+       0,     4,     0,     3,     3,     0,     1,     1,     0,     3,
+       3,     6,     5,     2,     1,    11,     8,     4,     1,     3,
+       0,     4,     0,     1,     1,     1,     0,     4,     4,     2,
+       0,     3,     0,     3,     3,     3,     3,     3,     3,     3,
+       3,     3,     3,     3,     3,     3,     2,     2,     2,     1,
+       1,     1,     1,     3,     3
 };
 
 /* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
@@ -616,101 +606,123 @@ static const yytype_uint8 yyr2[] =
    means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
-       0,     0,     0,     0,     1,     5,     2,     0,    10,     3,
-       4,     0,    10,     6,     0,     0,    22,     0,    13,    14,
-      15,    16,     8,     9,     0,     0,     0,    11,    19,     0,
-       7,    18,     0,    20,    25,    17,    21,    28,    44,    44,
-       0,     0,    38,    23,     0,    26,     0,    27,    34,    35,
-      58,    59,     0,    60,    54,    53,    55,    33,    56,    43,
-       0,     0,     0,     0,     0,     0,     0,    49,    24,     0,
-      71,    72,    70,    69,    65,    68,    64,    67,    63,    73,
-      66,    62,    61,     0,    52,    38,    38,    42,     0,    41,
-      30,     0,     0,    29,     0,     0,    57,    51,     0,     0,
-      36,    37,     0,    45,    46,    32,    40,     0,    48,     0,
-      31,     0,    38,     0,     0,     0,    39,     0,     0,    50
+       0,     0,     0,     0,     1,     5,     2,     0,    11,     0,
+       0,     0,    11,     6,     0,     0,     3,     4,    20,     0,
+      12,    13,    14,    15,     8,     9,     0,     0,     0,    10,
+      18,     0,     7,    17,     0,    19,    25,    16,    21,     0,
+      38,    46,    46,     0,     0,    40,    23,     0,    26,     0,
+      27,    34,     0,     0,     0,     0,    70,    69,    71,    33,
+      72,    45,     0,     0,     0,     0,     0,     0,     0,    24,
+      66,    67,     0,     0,    68,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,    40,    40,
+      44,     0,    43,    30,     0,     0,    29,     0,     0,     0,
+      74,    73,    63,    64,    62,    61,    56,    59,    55,    58,
+      54,    65,    57,    60,    53,     0,     0,    37,    39,     0,
+      48,    47,    49,    32,    42,     0,    51,     0,    31,     0,
+      40,     0,     0,     0,    36,     0,    41,     0,     0,    35
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
-static const yytype_int8 yydefgoto[] =
+static const yytype_int16 yydefgoto[] =
 {
-      -1,     2,     6,     9,    13,    14,    15,    22,    10,    32,
-      24,    25,    35,    37,    46,    91,    64,   110,    88,    57,
-      58,    94,    95,    49,    59,    60,    83
+      -1,     2,     6,     9,    13,    14,    15,    24,    10,    34,
+      26,    27,    37,    39,    49,    94,    65,   128,    91,    59,
+      60,    98,    99,    61
 };
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
-#define YYPACT_NINF -67
+#define YYPACT_NINF -85
 static const yytype_int16 yypact[] =
 {
-      11,   -41,    26,    16,   -67,   -67,     8,    -5,   -33,   -67,
-     -67,    18,    -3,   -67,    21,     7,   -67,    35,   -67,   -67,
-     -67,   -67,   -67,    40,    27,    20,    29,   -67,    21,    21,
-     -67,   -67,    36,    52,   -67,   -67,   -67,    -2,    93,    93,
-      93,    39,   -67,   -67,   -11,   -67,    55,   -67,   -67,   -67,
-     -67,   -67,    93,   -67,   -67,   -67,    43,   -67,   -67,   176,
-      93,    45,   116,    81,     6,    60,    93,    48,   -67,   136,
-     -67,   -67,   -67,   -67,   -67,   -67,   -67,   -67,   -67,   -67,
-     -67,   -67,   -67,    93,   176,   -67,   -67,   -67,    50,   176,
-     -67,    67,    68,   176,    54,    93,   -67,   176,    37,    41,
-     -67,   -67,    72,   -67,    74,   -67,    62,    56,   -67,    63,
-     -67,    76,   -67,    75,    51,    93,   -67,   156,    71,   -67
+       2,   -25,    30,    11,   -85,   -85,    14,   -12,    13,    32,
+      33,    15,   -85,   -85,    53,    16,   -85,   -85,    17,    35,
+     -85,   -85,   -85,   -85,   -85,    41,    26,    25,    37,   -85,
+      53,    53,   -85,   -85,    43,    57,   -85,   -85,   -85,    48,
+     -85,   163,   163,   163,    49,   -85,   -85,   -15,   -85,    58,
+     -85,   -85,   163,   163,    71,   163,   -85,   -85,    51,   -85,
+     -85,   246,    52,   186,   118,    96,    68,   163,    46,   -85,
+     -85,   -85,    55,   206,   -85,   163,   163,   163,   163,   163,
+     163,   163,   163,   163,   163,   163,   163,   163,   -85,   -85,
+     -85,    62,   246,   -85,    80,    82,   246,    65,    69,   163,
+     -85,   -85,   -85,   -85,   -14,   -14,    -8,    -8,    -8,    -8,
+      -8,   -85,    -8,   285,   266,   115,   123,   -85,   -85,    91,
+     -85,   -85,   156,   -85,    99,    74,   -85,    81,   -85,     1,
+     -85,    83,    84,   133,   -85,   163,   -85,   226,    86,   -85
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -67,   -67,   -67,    73,    97,   -67,   -67,    -6,   -67,   -67,
-     -67,   -67,   -67,   -67,   -67,    82,   -66,   -67,   -67,    83,
-     -37,   -67,   -67,   -67,   -35,   -67,   -67
+     -85,   -85,   -85,    93,   108,   -85,   -85,    -3,   -85,   -85,
+     -85,   -85,   -85,   -85,   -85,    94,   -84,   -85,   -85,    95,
+     -39,   -85,   -85,   -42
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
    positive, shift that token.  If negative, reduce the rule which
    number is the opposite.  If zero, do what YYDEFACT says.
    If YYTABLE_NINF, syntax error.  */
-#define YYTABLE_NINF -48
-static const yytype_int8 yytable[] =
+#define YYTABLE_NINF -53
+static const yytype_int16 yytable[] =
 {
-      48,    38,    12,     3,    39,    62,    40,    65,     8,    38,
-      66,   -12,    39,    41,    40,     7,     1,    69,     8,    98,
-      99,    41,    31,    33,    67,    84,     4,    48,    89,    42,
-      43,    93,    18,    19,    20,    21,     5,    42,    90,    11,
-      38,   -12,    44,    39,    38,    40,   114,    39,    97,    40,
-      44,    23,    41,    16,    38,    26,    41,    39,    27,    40,
-     104,    48,    48,    28,    29,    30,    41,    34,    42,   105,
-      36,   109,    42,   106,    63,    68,    85,    48,    67,    92,
-     117,    44,    42,   116,   -47,    44,   100,   101,   107,   102,
-     103,   111,   108,   113,   112,    44,    70,    71,    72,    73,
-      74,    75,    76,    77,    78,    50,    51,   119,   115,    17,
-      45,    79,    80,     0,    81,    82,    52,    50,    51,    47,
-      53,     0,    61,    54,    55,    56,    87,     0,    52,     0,
-       0,     0,    53,     0,     0,    54,    55,    56,    70,    71,
-      72,    73,    74,    75,    76,    77,    78,    86,     0,     0,
-       0,     0,     0,    79,    80,     0,    81,    82,    70,    71,
-      72,    73,    74,    75,    76,    77,    78,     0,     0,     0,
-       0,     0,    96,    79,    80,     0,    81,    82,    70,    71,
-      72,    73,    74,    75,    76,    77,    78,     0,     0,     0,
-     118,     0,     0,    79,    80,     0,    81,    82,    70,    71,
-      72,    73,    74,    75,    76,    77,    78,     0,     0,     0,
-       0,     0,     0,    79,    80,     0,    81,    82
+      51,    63,   131,    66,   115,   116,    67,     1,    75,    76,
+      70,    71,    73,    74,    75,    76,    77,    78,   132,     3,
+      68,     7,    92,    84,     8,    96,    51,    33,    35,    84,
+       4,     5,    11,   102,   103,   104,   105,   106,   107,   108,
+     109,   110,   111,   112,   113,   114,   133,    97,    12,    40,
+      18,    41,    16,    17,    42,    28,    43,   122,     8,    29,
+      25,   -22,    30,    44,    20,    21,    22,    23,   -28,    31,
+     -52,   -52,    72,    32,    36,    38,    51,    51,    69,    45,
+      46,   -52,   -50,    88,    64,   -52,    68,    95,   -52,   -52,
+     -52,   100,    47,   137,    51,    52,    53,    40,   117,    41,
+     118,   120,    42,   119,    43,   121,    54,   125,   127,   129,
+      55,    44,   130,    56,    57,    58,    40,   135,    41,   134,
+      19,    42,   139,    43,    40,     0,    41,    45,    93,    42,
+      44,    43,    48,    50,    40,     0,    41,    62,    44,    42,
+      47,    43,    52,    53,     0,     0,    45,   123,    44,     0,
+       0,     0,     0,    54,    45,   124,     0,    55,     0,    47,
+      56,    57,    58,    90,    45,   136,     0,    47,     0,     0,
+       0,     0,     0,     0,   126,     0,     0,    47,    75,    76,
+      77,    78,    79,    80,    81,    82,    83,    52,    53,     0,
+       0,     0,     0,    84,    85,     0,    86,    87,    54,     0,
+       0,     0,    55,     0,     0,    56,    57,    58,    75,    76,
+      77,    78,    79,    80,    81,    82,    83,    89,     0,     0,
+       0,     0,     0,    84,    85,     0,    86,    87,    75,    76,
+      77,    78,    79,    80,    81,    82,    83,     0,     0,     0,
+       0,     0,   101,    84,    85,     0,    86,    87,    75,    76,
+      77,    78,    79,    80,    81,    82,    83,     0,     0,     0,
+     138,     0,     0,    84,    85,     0,    86,    87,    75,    76,
+      77,    78,    79,    80,    81,    82,    83,     0,     0,     0,
+       0,     0,     0,    84,    85,     0,    86,    87,    75,    76,
+      77,    78,    79,    80,    81,    82,    83,     0,     0,     0,
+       0,     0,     0,    84,    85,     0,    86,    75,    76,    77,
+      78,    79,    80,    81,    82,    83,     0,     0,     0,     0,
+       0,     0,    84,    85
 };
 
-static const yytype_int8 yycheck[] =
+static const yytype_int16 yycheck[] =
 {
-      37,     3,    35,    44,     6,    40,     8,    18,    10,     3,
-      21,    44,     6,    15,     8,     7,     5,    52,    10,    85,
-      86,    15,    28,    29,    35,    60,     0,    64,    63,    31,
-      32,    66,    11,    12,    13,    14,    20,    31,    32,    44,
-       3,    44,    44,     6,     3,     8,   112,     6,    83,     8,
-      44,    44,    15,    35,     3,    20,    15,     6,    18,     8,
-      95,    98,    99,    36,    44,    36,    15,    31,    31,    32,
-      18,     9,    31,    32,    35,    20,    31,   114,    35,    19,
-     115,    44,    31,    32,    36,    44,    36,    20,    16,    21,
-      36,    35,    18,    17,    31,    44,    22,    23,    24,    25,
-      26,    27,    28,    29,    30,    24,    25,    36,    33,    12,
-      37,    37,    38,    -1,    40,    41,    35,    24,    25,    37,
-      39,    -1,    39,    42,    43,    44,    45,    -1,    35,    -1,
+      39,    43,     1,    18,    88,    89,    21,     5,    22,    23,
+      52,    53,    54,    55,    22,    23,    24,    25,    17,    44,
+      35,     7,    64,    37,    10,    67,    65,    30,    31,    37,
+       0,    20,    44,    75,    76,    77,    78,    79,    80,    81,
+      82,    83,    84,    85,    86,    87,   130,     1,    35,     1,
+      35,     3,    20,    20,     6,    20,     8,    99,    10,    18,
+      44,    44,    36,    15,    11,    12,    13,    14,    20,    44,
+      24,    25,     1,    36,    31,    18,   115,   116,    20,    31,
+      32,    35,    36,    31,    35,    39,    35,    19,    42,    43,
+      44,    36,    44,   135,   133,    24,    25,     1,    36,     3,
+      20,    36,     6,    21,     8,    36,    35,    16,     9,    35,
+      39,    15,    31,    42,    43,    44,     1,    33,     3,    36,
+      12,     6,    36,     8,     1,    -1,     3,    31,    32,     6,
+      15,     8,    39,    39,     1,    -1,     3,    42,    15,     6,
+      44,     8,    24,    25,    -1,    -1,    31,    32,    15,    -1,
+      -1,    -1,    -1,    35,    31,    32,    -1,    39,    -1,    44,
+      42,    43,    44,    45,    31,    32,    -1,    44,    -1,    -1,
+      -1,    -1,    -1,    -1,    18,    -1,    -1,    44,    22,    23,
+      24,    25,    26,    27,    28,    29,    30,    24,    25,    -1,
+      -1,    -1,    -1,    37,    38,    -1,    40,    41,    35,    -1,
       -1,    -1,    39,    -1,    -1,    42,    43,    44,    22,    23,
       24,    25,    26,    27,    28,    29,    30,    31,    -1,    -1,
       -1,    -1,    -1,    37,    38,    -1,    40,    41,    22,    23,
@@ -719,25 +731,31 @@ static const yytype_int8 yycheck[] =
       24,    25,    26,    27,    28,    29,    30,    -1,    -1,    -1,
       34,    -1,    -1,    37,    38,    -1,    40,    41,    22,    23,
       24,    25,    26,    27,    28,    29,    30,    -1,    -1,    -1,
-      -1,    -1,    -1,    37,    38,    -1,    40,    41
+      -1,    -1,    -1,    37,    38,    -1,    40,    41,    22,    23,
+      24,    25,    26,    27,    28,    29,    30,    -1,    -1,    -1,
+      -1,    -1,    -1,    37,    38,    -1,    40,    22,    23,    24,
+      25,    26,    27,    28,    29,    30,    -1,    -1,    -1,    -1,
+      -1,    -1,    37,    38
 };
 
 /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
    symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,     5,    47,    44,     0,    20,    48,     7,    10,    49,
-      54,    44,    35,    50,    51,    52,    35,    50,    11,    12,
-      13,    14,    53,    44,    56,    57,    20,    18,    36,    44,
-      36,    53,    55,    53,    31,    58,    18,    59,     3,     6,
-       8,    15,    31,    32,    44,    49,    60,    61,    66,    69,
-      24,    25,    35,    39,    42,    43,    44,    65,    66,    70,
-      71,    65,    70,    35,    62,    18,    21,    35,    20,    70,
-      22,    23,    24,    25,    26,    27,    28,    29,    30,    37,
-      38,    40,    41,    72,    70,    31,    31,    45,    64,    70,
-      32,    61,    19,    70,    67,    68,    36,    70,    62,    62,
-      36,    20,    21,    36,    70,    32,    32,    16,    18,     9,
-      63,    35,    31,    17,    62,    33,    32,    70,    34,    36
+       0,     5,    48,    44,     0,    20,    49,     7,    10,    50,
+      55,    44,    35,    51,    52,    53,    20,    20,    35,    51,
+      11,    12,    13,    14,    54,    44,    57,    58,    20,    18,
+      36,    44,    36,    54,    56,    54,    31,    59,    18,    60,
+       1,     3,     6,     8,    15,    31,    32,    44,    50,    61,
+      62,    67,    24,    25,    35,    39,    42,    43,    44,    66,
+      67,    70,    66,    70,    35,    63,    18,    21,    35,    20,
+      70,    70,     1,    70,    70,    22,    23,    24,    25,    26,
+      27,    28,    29,    30,    37,    38,    40,    41,    31,    31,
+      45,    65,    70,    32,    62,    19,    70,     1,    68,    69,
+      36,    36,    70,    70,    70,    70,    70,    70,    70,    70,
+      70,    70,    70,    70,    70,    63,    63,    36,    20,    21,
+      36,    36,    70,    32,    32,    16,    18,     9,    64,    35,
+      31,     1,    17,    63,    36,    33,    32,    70,    34,    36
 };
 
 #define yyerrok		(yyerrstatus = 0)
@@ -1552,368 +1570,489 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 103 "gocompiler.y"
-    {(yyval.iprogram) = my_program = program((yyvsp[(4) - (4)].idl), (yyvsp[(2) - (4)].str));}
+#line 76 "gocompiler.y"
+    {my_program = create("Program"); (yyval.no) = add_down(my_program, (yyvsp[(4) - (4)].no));}
     break;
 
   case 3:
-#line 106 "gocompiler.y"
-    {(yyval.idl) = insert_dec((yyvsp[(1) - (2)].idl), (yyvsp[(2) - (2)].isd));}
+#line 79 "gocompiler.y"
+    {(yyval.no) = add_next((yyvsp[(1) - (3)].no), (yyvsp[(2) - (3)].no));}
     break;
 
   case 4:
-#line 107 "gocompiler.y"
-    {(yyval.idl) = insert_dec((yyvsp[(1) - (2)].idl), (yyvsp[(2) - (2)].isd));}
+#line 80 "gocompiler.y"
+    {node* tmp = create("FuncDecl"); add_down(tmp, (yyvsp[(2) - (3)].no)); (yyval.no) = add_next((yyvsp[(1) - (3)].no), tmp);}
     break;
 
   case 5:
-#line 108 "gocompiler.y"
-    {(yyval.idl) = NULL;}
+#line 81 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 6:
-#line 111 "gocompiler.y"
-    {(yyval.isd) = (yyvsp[(2) - (2)].iv);}
+#line 84 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(2) - (2)].no);}
     break;
 
   case 7:
-#line 112 "gocompiler.y"
-    {(yyval.isd) = (yyvsp[(3) - (5)].iv);}
+#line 85 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(3) - (5)].no);}
     break;
 
   case 8:
-#line 115 "gocompiler.y"
-    {(yyval.iv) = insert_vardec_type((yyvsp[(1) - (2)].iv), (yyvsp[(2) - (2)].tp));}
+#line 88 "gocompiler.y"
+    {
+                                    node* tmp = create("VarDecl");
+                                    node* to_loop = (yyvsp[(1) - (2)].no);
+                                    node* tp = (yyvsp[(2) - (2)].no);
+                                    add_down(tmp, (yyvsp[(2) - (2)].no));
+                                    add_down(tmp, create(to_loop->val));    
+                                    to_loop = to_loop->next;
+                                    node* tmp_2 = NULL;
+                                    for(;to_loop != NULL; to_loop=to_loop->next){
+                                        tmp_2 = create("VarDecl");
+                                        add_down(tmp_2, create(tp->val));
+                                        add_down(tmp_2, create(to_loop->val));
+                                        add_next(tmp, tmp_2);
+                                    }
+                                    (yyval.no) = tmp;
+                                }
     break;
 
   case 9:
-#line 118 "gocompiler.y"
-    {(yyval.iv) = insert_vardec_without_type((yyvsp[(1) - (2)].iv), (yyvsp[(2) - (2)].str));}
+#line 106 "gocompiler.y"
+    {
+                                char* aux = (char*)malloc(strlen((yyvsp[(2) - (2)].text))+5);
+                                sprintf(aux, "Id(%s)", (yyvsp[(2) - (2)].text));
+                                node* tmp = create(aux);
+                                (yyval.no) = add_next((yyvsp[(1) - (2)].no), tmp);
+                            }
     break;
 
   case 10:
-#line 119 "gocompiler.y"
-    {(yyval.iv) = NULL;}
+#line 114 "gocompiler.y"
+    {   
+                                            char* aux = (char*)malloc(strlen((yyvsp[(2) - (3)].text))+5);
+                                            sprintf(aux, "Id(%s)", (yyvsp[(2) - (3)].text));
+                                            node* tmp = create(aux);
+                                            (yyval.no) = add_next((yyvsp[(1) - (3)].no), tmp);
+                                        }
     break;
 
   case 11:
-#line 122 "gocompiler.y"
-    {(yyval.iv) = insert_vardec_without_type((yyvsp[(1) - (3)].iv), (yyvsp[(2) - (3)].str));}
+#line 120 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 12:
 #line 123 "gocompiler.y"
-    {(yyval.iv) = NULL;}
+    {(yyval.no) = create("Int");}
     break;
 
   case 13:
-#line 126 "gocompiler.y"
-    {(yyval.tp) = d_integer;}
+#line 124 "gocompiler.y"
+    {(yyval.no) = create("Float32");}
     break;
 
   case 14:
-#line 127 "gocompiler.y"
-    {(yyval.tp) = d_float32;}
+#line 125 "gocompiler.y"
+    {(yyval.no) = create("Bool");}
     break;
 
   case 15:
-#line 128 "gocompiler.y"
-    {(yyval.tp) = d_bool;}
+#line 126 "gocompiler.y"
+    {(yyval.no) = create("String");}
     break;
 
   case 16:
 #line 129 "gocompiler.y"
-    {(yyval.tp) = d_str;}
+    {
+                                                                        node* fheader = create("FuncHeader");
+                                                                        node* fbody = create("FuncBody");
+                                                                        char* aux = (char*)malloc(strlen((yyvsp[(2) - (7)].text))+5);
+                                                                        sprintf(aux, "Id(%s)", (yyvsp[(2) - (7)].text));
+                                                                        node* tmp = create(aux);
+                                                                        add_down(fheader, tmp);
+                                                                        add_down(fheader, (yyvsp[(6) - (7)].no));
+                                                                        tmp = create("FuncParams");
+                                                                        add_down(tmp, (yyvsp[(4) - (7)].no));
+                                                                        add_down(fheader, tmp);
+                                                                        add_down(fbody, (yyvsp[(7) - (7)].no));
+                                                                        (yyval.no) = add_next(fheader, fbody);
+                                                                        free(aux);
+                                                                    }
     break;
 
   case 17:
-#line 132 "gocompiler.y"
-    {insert_fundec(insert_fun_header((yyvsp[(4) - (7)].ivl), (yyvsp[(2) - (7)].str), (yyvsp[(6) - (7)].tp)), (yyvsp[(7) - (7)].ifb));}
+#line 146 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(1) - (1)].no);}
     break;
 
   case 18:
-#line 135 "gocompiler.y"
-    {(yyval.tp) = (yyvsp[(1) - (1)].tp);}
+#line 147 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 19:
-#line 136 "gocompiler.y"
-    {(yyval.tp) = d_no_type;}
+#line 150 "gocompiler.y"
+    {
+                                char* aux = (char*)malloc(strlen((yyvsp[(2) - (3)].text))+5);
+                                sprintf(aux, "Id(%s)", (yyvsp[(2) - (3)].text));
+                                node* tmp = create(aux);
+                                tmp = add_next((yyvsp[(3) - (3)].no), tmp);
+                                node* param = create("ParamDecl");
+                                add_down(param, tmp);
+                                (yyval.no) = add_next((yyvsp[(1) - (3)].no), param);
+                                free(aux);
+                            }
     break;
 
   case 20:
-#line 139 "gocompiler.y"
-    {(yyval.ivl) = insert_param((yyvsp[(1) - (3)].ivl), insert_vardec((yyvsp[(2) - (3)].str), (yyvsp[(3) - (3)].tp)));}
+#line 160 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 21:
-#line 143 "gocompiler.y"
-    {(yyval.ivl) = insert_param((yyvsp[(1) - (4)].ivl), insert_vardec((yyvsp[(2) - (4)].str), (yyvsp[(3) - (4)].tp)));}
+#line 164 "gocompiler.y"
+    {
+                                    char* aux = (char*)malloc(strlen((yyvsp[(2) - (4)].text))+5);
+                                    sprintf(aux, "Id(%s)", (yyvsp[(2) - (4)].text));
+                                    node* tmp = create(aux);
+                                    tmp = add_next((yyvsp[(3) - (4)].no), tmp);
+                                    node* param = create("ParamDecl");
+                                    add_down(param, tmp);
+                                    (yyval.no) = add_next((yyvsp[(1) - (4)].no), param);
+                                    free(aux);
+                                }
     break;
 
   case 22:
-#line 144 "gocompiler.y"
-    {(yyval.ivl) = NULL;}
+#line 174 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 23:
-#line 147 "gocompiler.y"
-    {(yyval.ifb) = insert_funbody((yyvsp[(2) - (3)].ivosl));}
+#line 177 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(2) - (3)].no);}
     break;
 
   case 24:
-#line 151 "gocompiler.y"
-    {(yyval.ivosl) = insert_vos_list((yyvsp[(1) - (3)].ivosl), (yyvsp[(2) - (3)].ivos));}
+#line 181 "gocompiler.y"
+    {(yyval.no) = add_next((yyvsp[(1) - (3)].no), (yyvsp[(2) - (3)].no));}
     break;
 
   case 25:
-#line 152 "gocompiler.y"
-    {(yyval.ivosl) = NULL;}
+#line 182 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 26:
-#line 156 "gocompiler.y"
-    {(yyval.ivos) = insert_var((yyvsp[(1) - (1)].isd));}
+#line 186 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(1) - (1)].no);}
     break;
 
   case 27:
-#line 157 "gocompiler.y"
-    {(yyval.ivos) = insert_stat((yyvsp[(1) - (1)].is));}
+#line 187 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(1) - (1)].no);}
     break;
 
   case 28:
-#line 158 "gocompiler.y"
-    {(yyval.ivos) = NULL;}
+#line 188 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 29:
-#line 161 "gocompiler.y"
-    {(yyval.is) = insert_assign((yyvsp[(1) - (3)].str), (yyvsp[(3) - (3)].ie));}
+#line 191 "gocompiler.y"
+    {
+                                                                                char* aux = (char*)malloc(strlen((yyvsp[(1) - (3)].text))+5);
+                                                                                sprintf(aux, "Id(%s)", (yyvsp[(1) - (3)].text));
+                                                                                node* tmp = create(aux);
+                                                                                node* tmp_2 = create("Assign");
+                                                                                tmp_2 = add_down(tmp_2, tmp);
+                                                                                (yyval.no) = add_down(tmp_2, (yyvsp[(3) - (3)].no));
+                                                                            }
     break;
 
   case 30:
-#line 162 "gocompiler.y"
-    {(yyval.is) = insert_stat_stat_list((yyvsp[(2) - (3)].isl));}
+#line 199 "gocompiler.y"
+    {
+                                                                                if (count_depth((yyvsp[(2) - (3)].no)) < 2) (yyval.no) = (yyvsp[(2) - (3)].no);
+                                                                                else{
+                                                                                    node* tmp = create("Block"); 
+                                                                                    (yyval.no) = add_down(tmp,(yyvsp[(2) - (3)].no));
+                                                                                }
+                                                                            }
     break;
 
   case 31:
-#line 163 "gocompiler.y"
-    {(yyval.is) = insert_if((yyvsp[(2) - (6)].ie), (yyvsp[(4) - (6)].isl), (yyvsp[(6) - (6)].isl));}
+#line 206 "gocompiler.y"
+    {
+                                                                                node* tmp = create("If"); 
+                                                                                add_down(tmp, (yyvsp[(2) - (6)].no));
+                                                                                node* tmp_2 = create("Block"); 
+                                                                                add_down(tmp_2, (yyvsp[(4) - (6)].no));
+                                                                                add_down(tmp, tmp_2);
+                                                                                node* tmp_3 = create("Block");
+                                                                                add_down(tmp_3, (yyvsp[(6) - (6)].no));
+                                                                                (yyval.no) = add_down(tmp, tmp_3);
+                                                                            }
     break;
 
   case 32:
-#line 164 "gocompiler.y"
-    {(yyval.is) = insert_for((yyvsp[(2) - (5)].ie), (yyvsp[(4) - (5)].isl));}
+#line 216 "gocompiler.y"
+    {
+                                                                                node* tmp = create("For"); 
+                                                                                add_down(tmp, (yyvsp[(2) - (5)].no)); 
+                                                                                node* tmp_2 = create("Block");
+                                                                                add_down(tmp_2, (yyvsp[(4) - (5)].no)); 
+                                                                                (yyval.no) = add_down(tmp, tmp_2);
+                                                                            }
     break;
 
   case 33:
-#line 165 "gocompiler.y"
-    {(yyval.is) = insert_return((yyvsp[(2) - (2)].ie));}
+#line 223 "gocompiler.y"
+    {node* tmp = create("Return"); (yyval.no) = add_down(tmp, (yyvsp[(2) - (2)].no));}
     break;
 
   case 34:
-#line 166 "gocompiler.y"
-    {(yyval.is) = insert_fun_invocation((yyvsp[(1) - (1)].ifi));}
+#line 224 "gocompiler.y"
+    {node* tmp = create("Call"); (yyval.no) = add_down(tmp, (yyvsp[(1) - (1)].no));}
     break;
 
   case 35:
-#line 167 "gocompiler.y"
-    {(yyval.is) = insert_parse((yyvsp[(1) - (1)].iparse));}
+#line 225 "gocompiler.y"
+    {
+                                                                                char* aux = (char*)malloc(strlen((yyvsp[(1) - (11)].text))+5);
+                                                                                sprintf(aux, "Id(%s)", (yyvsp[(1) - (11)].text));
+                                                                                node* tmp = create(aux);
+                                                                                add_next(tmp, (yyvsp[(9) - (11)].no));
+                                                                                node* tmp_2 = create("ParseArgs");
+                                                                                (yyval.no) = add_down(tmp_2, tmp);
+                                                                            }
     break;
 
   case 36:
-#line 168 "gocompiler.y"
-    {(yyval.is) = insert_print((yyvsp[(3) - (4)].ip));}
+#line 233 "gocompiler.y"
+    {(yyval.no) = NULL; error_occ = true;}
     break;
 
   case 37:
-#line 171 "gocompiler.y"
-    {(yyval.isl) = insert_stat_list((yyvsp[(1) - (3)].isl), (yyvsp[(2) - (3)].is));}
+#line 234 "gocompiler.y"
+    {node* tmp = create("Print"); (yyval.no) = add_down(tmp, (yyvsp[(3) - (4)].no));}
     break;
 
   case 38:
-#line 172 "gocompiler.y"
-    {(yyval.isl) = NULL;}
+#line 235 "gocompiler.y"
+    {(yyval.no) = NULL; error_occ = true;}
     break;
 
   case 39:
-#line 174 "gocompiler.y"
-    {(yyval.isl) = (yyvsp[(3) - (4)].isl);}
+#line 238 "gocompiler.y"
+    {(yyval.no) = add_next((yyvsp[(1) - (3)].no), (yyvsp[(2) - (3)].no));}
     break;
 
   case 40:
-#line 175 "gocompiler.y"
-    {(yyval.isl) = NULL;}
+#line 239 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 41:
-#line 178 "gocompiler.y"
-    {(yyval.ip) = print_expr((yyvsp[(1) - (1)].ie));}
+#line 241 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(3) - (4)].no);}
     break;
 
   case 42:
-#line 179 "gocompiler.y"
-    {(yyval.ip) = print_strlit((yyvsp[(1) - (1)].str));}
+#line 242 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 43:
-#line 182 "gocompiler.y"
-    {(yyval.ie) = (yyvsp[(1) - (1)].ie);}
+#line 245 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(1) - (1)].no);}
     break;
 
   case 44:
-#line 183 "gocompiler.y"
-    {(yyval.ie) = NULL;}
+#line 246 "gocompiler.y"
+    {
+                        char* aux = (char*)malloc(strlen((yyvsp[(1) - (1)].text))+9);
+                        sprintf(aux, "StrLit(\"%s\")", (yyvsp[(1) - (1)].text));
+                        (yyval.no) = create(aux);
+                    }
     break;
 
   case 45:
-#line 187 "gocompiler.y"
-    {(yyval.ifi) = insert_fun_inv((yyvsp[(1) - (4)].str), (yyvsp[(3) - (4)].iel));}
+#line 253 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(1) - (1)].no);}
     break;
 
   case 46:
-#line 190 "gocompiler.y"
-    {(yyval.iel) = insert_expr_list((yyvsp[(1) - (2)].iel), (yyvsp[(2) - (2)].ie));}
+#line 254 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 47:
-#line 191 "gocompiler.y"
-    {(yyval.iel) = NULL;}
+#line 258 "gocompiler.y"
+    {
+                                                    char* aux = (char*)malloc(strlen((yyvsp[(1) - (4)].text))+5);
+                                                    sprintf(aux, "Id(%s)", (yyvsp[(1) - (4)].text));
+                                                    node* tmp = create(aux);
+                                                    (yyval.no) = add_next(tmp, (yyvsp[(3) - (4)].no));
+                                                }
     break;
 
   case 48:
-#line 194 "gocompiler.y"
-    {(yyval.iel) = insert_expr_list((yyvsp[(1) - (3)].iel), (yyvsp[(2) - (3)].ie));}
+#line 264 "gocompiler.y"
+    {(yyval.no) = NULL; error_occ = true;}
     break;
 
   case 49:
-#line 195 "gocompiler.y"
-    {(yyval.iel) = NULL;}
+#line 267 "gocompiler.y"
+    {(yyval.no) = add_next((yyvsp[(1) - (2)].no), (yyvsp[(2) - (2)].no));}
     break;
 
   case 50:
-#line 198 "gocompiler.y"
-    {(yyval.iparse) = insert_parse_arg((yyvsp[(1) - (11)].str), (yyvsp[(9) - (11)].ie));}
+#line 268 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 51:
-#line 201 "gocompiler.y"
-    {(yyval.ie) = insert_math((yyvsp[(2) - (3)].ot), (yyvsp[(1) - (3)].ie), (yyvsp[(3) - (3)].ie));}
+#line 271 "gocompiler.y"
+    {(yyval.no) = add_next((yyvsp[(1) - (3)].no), (yyvsp[(2) - (3)].no));}
     break;
 
   case 52:
-#line 202 "gocompiler.y"
-    {(yyval.ie) = insert_non_assoc((yyvsp[(1) - (2)].nat), (yyvsp[(2) - (2)].ie));}
+#line 272 "gocompiler.y"
+    {(yyval.no) = NULL;}
     break;
 
   case 53:
-#line 203 "gocompiler.y"
-    {(yyval.ie) = insert_int((yyvsp[(1) - (1)].intlit));}
+#line 275 "gocompiler.y"
+    {node* tmp = create("Or");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 54:
-#line 204 "gocompiler.y"
-    {(yyval.ie) = insert_float((yyvsp[(1) - (1)].real));}
+#line 276 "gocompiler.y"
+    {node* tmp = create("Lt");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 55:
-#line 205 "gocompiler.y"
-    {(yyval.ie) = insert_id((yyvsp[(1) - (1)].str));}
+#line 277 "gocompiler.y"
+    {node* tmp = create("Gt");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 56:
-#line 206 "gocompiler.y"
-    {(yyval.ie) = insert_fun_inv_expr((yyvsp[(1) - (1)].ifi));}
+#line 278 "gocompiler.y"
+    {node* tmp = create("Eq");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 57:
-#line 207 "gocompiler.y"
-    {(yyval.ie) = (yyvsp[(2) - (3)].ie);}
+#line 279 "gocompiler.y"
+    {node* tmp = create("Ne");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 58:
-#line 210 "gocompiler.y"
-    {(yyval.nat) = d_minus;}
+#line 280 "gocompiler.y"
+    {node* tmp = create("Le");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 59:
-#line 211 "gocompiler.y"
-    {(yyval.nat) = d_plus;}
+#line 281 "gocompiler.y"
+    {node* tmp = create("Ge");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 60:
-#line 212 "gocompiler.y"
-    {(yyval.nat) = d_not;}
+#line 282 "gocompiler.y"
+    {node* tmp = create("And");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 61:
-#line 215 "gocompiler.y"
-    {(yyval.ot) = d_or;}
+#line 283 "gocompiler.y"
+    {node* tmp = create("Add");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 62:
-#line 216 "gocompiler.y"
-    {(yyval.ot) = d_and;}
+#line 284 "gocompiler.y"
+    {node* tmp = create("Sub");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 63:
-#line 217 "gocompiler.y"
-    {(yyval.ot) = d_lt;}
+#line 285 "gocompiler.y"
+    {node* tmp = create("Mul");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 64:
-#line 218 "gocompiler.y"
-    {(yyval.ot) = d_gt;}
+#line 286 "gocompiler.y"
+    {node* tmp = create("Div");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 65:
-#line 219 "gocompiler.y"
-    {(yyval.ot) = d_eq;}
+#line 287 "gocompiler.y"
+    {node* tmp = create("Mod");add_down(tmp, (yyvsp[(1) - (3)].no)); (yyval.no) = add_down(tmp, (yyvsp[(3) - (3)].no));}
     break;
 
   case 66:
-#line 220 "gocompiler.y"
-    {(yyval.ot) = d_ne;}
+#line 288 "gocompiler.y"
+    {node* tmp = create("Minus"); (yyval.no) = add_down(tmp, (yyvsp[(2) - (2)].no));}
     break;
 
   case 67:
-#line 221 "gocompiler.y"
-    {(yyval.ot) = d_le;}
+#line 289 "gocompiler.y"
+    {node* tmp = create("Plus"); (yyval.no) = add_down(tmp, (yyvsp[(2) - (2)].no));}
     break;
 
   case 68:
-#line 222 "gocompiler.y"
-    {(yyval.ot) = d_ge;}
+#line 290 "gocompiler.y"
+    {node* tmp = create("Not"); (yyval.no) = add_down(tmp, (yyvsp[(2) - (2)].no));}
     break;
 
   case 69:
-#line 223 "gocompiler.y"
-    {(yyval.ot) = d_pl;}
+#line 291 "gocompiler.y"
+    {
+                                        char* aux = (char*)malloc(strlen((yyvsp[(1) - (1)].text))+9);
+                                        sprintf(aux, "IntLit(%s)", (yyvsp[(1) - (1)].text));
+                                        (yyval.no) = create(aux);          
+                                        free(aux);                        
+                                    }
     break;
 
   case 70:
-#line 224 "gocompiler.y"
-    {(yyval.ot) = d_min;}
+#line 297 "gocompiler.y"
+    {
+                                        char* aux = (char*)malloc(strlen((yyvsp[(1) - (1)].text))+10);
+                                        sprintf(aux, "RealLit(%s)", (yyvsp[(1) - (1)].text));
+                                        (yyval.no) = create(aux);
+                                        free(aux);                                  
+                                    }
     break;
 
   case 71:
-#line 225 "gocompiler.y"
-    {(yyval.ot) = d_star;}
+#line 303 "gocompiler.y"
+    {
+                                        char* aux = (char*)malloc(strlen((yyvsp[(1) - (1)].text))+5);
+                                        sprintf(aux, "Id(%s)", (yyvsp[(1) - (1)].text));
+                                        (yyval.no) = create(aux); 
+                                        free(aux);                                 
+                                    }
     break;
 
   case 72:
-#line 226 "gocompiler.y"
-    {(yyval.ot) = d_div;}
+#line 309 "gocompiler.y"
+    {node* tmp = create("Call"); (yyval.no) = add_down(tmp, (yyvsp[(1) - (1)].no));}
     break;
 
   case 73:
-#line 227 "gocompiler.y"
-    {(yyval.ot) = d_mod;}
+#line 310 "gocompiler.y"
+    {(yyval.no) = (yyvsp[(2) - (3)].no);}
+    break;
+
+  case 74:
+#line 311 "gocompiler.y"
+    {(yyval.no) = NULL; error_occ = true;}
     break;
 
 
 /* Line 1267 of yacc.c.  */
-#line 1917 "y.tab.c"
+#line 2056 "y.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2127,6 +2266,17 @@ yyreturn:
 }
 
 
-#line 230 "gocompiler.y"
+#line 314 "gocompiler.y"
 
 
+int main(int argc, char *argv[]){
+  if ((argc >= 2 && strcmp(argv[1], "-l") == 0)||
+      (argc >= 3 && strcmp(argv[2], "-l") == 0)) mayprint = 1;
+  yyparse();
+  build_symtab(my_program, NULL, NULL);
+  //print_table();
+  if ((argc >= 2 && strcmp(argv[1], "-t") == 0)||
+      (argc >= 3 && strcmp(argv[2], "-t") == 0)) if (!error_occ)print_tree(my_program, NULL, 0, supposed_file());
+    print_noted_tree(my_program, NULL, 0, stdout);
+  return 0;
+}

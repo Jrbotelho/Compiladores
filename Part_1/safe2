@@ -1,0 +1,250 @@
+%{
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include "functions.h"
+    #include "y.tab.h"
+    int yylex (void);
+    void yyerror(char* s);
+
+    is_program* my_program;
+%}
+
+%token RETURN
+%token RESERVED
+%token PACKAGE
+%token FOR
+%token FUNC
+%token IF
+%token ELSE
+%token VAR
+%token INT
+%token FLOAT32
+%token BOOL
+%token STRNG
+%token PRINT
+%token PARSEINT
+%token CMDARGS
+%token COMMA
+%token BLANKID
+%token SEMICOLON
+%token ASSIGN
+%token STAR
+%token DIV
+%token MINUS
+%token PLUS
+%token EQ
+%token GE
+%token GT
+%token LE
+%token LT
+%token LBRACE
+%token RBRACE
+%token LSQ
+%token RSQ
+%token LPAR
+%token RPAR
+%token MOD
+%token NE
+%token NOT
+%token AND
+%token OR
+%token<real>REALLIT
+%token<intlit>INTLIT
+%token<str>ID STRLT
+
+%type<idl>DECLARATION
+%type<id>VAR_DECLARATION FUNC_DECLARATION VAR_SPEC VS_CONT VS_CONT_CONT
+%type<ivl>PARAMETERS P_CONT
+%type<tp>FD_CONT TYPE
+%type<ifb>FUNC_BODY
+%type<ivosl>VARS_AND_STATEMENTS
+%type<ivos>VAS_CONT
+%type<is>STATEMENT
+%type<isl>ST_CONT ST2_CONT
+%type<ip>ST3_CONT
+%type<ie>EXPR MAYBE_EXPR
+%type<ifi>FUNC_INVOCATION
+%type<iel>MAYBE_EXPRS MORE_EXPRS
+%type<iparse>PARSE_ARGS
+%type<nat>SIG
+%type<ot>COMP
+%type<iprogram>PROGRAM
+
+%union{
+    float* real;
+    int* intlit;
+    char* str;
+    is_dec* id;
+    is_dec_list* idl;
+    is_dec* isd;
+    is_vardec* iv;
+    is_vardec_list* ivl;
+    tpe tp;
+    is_stat_list* isl;
+    is_funbody* ifb;
+    is_vos_list* ivosl;
+    is_var_or_stat* ivos;
+    is_stat* is;
+    is_print* ip;
+    is_expr* ie;
+    is_fun_inv* ifi;
+    is_expr_list* iel;
+    is_parse* iparse;
+    non_assoc_type nat;
+    op_type ot;
+    is_program* iprogram;
+}
+
+%right ASSIGN
+%left GT LT GE LE EQ NE
+%left MINUS PLUS
+%left STAR DIV
+%left MOD AND OR NOT
+%left LPAR RPAR
+%nonassoc lt_sig
+%nonassoc i_sig
+
+%%
+PROGRAM: PACKAGE ID SEMICOLON DECLARATION  {;}
+       ;
+
+DECLARATION:    DECLARATION VAR_DECLARATION SEMICOLON   {;}
+           |    DECLARATION FUNC_DECLARATION SEMICOLON  {;}
+           |    /*Nothing*/                     {;}
+           ;    
+
+VAR_DECLARATION:    VAR VAR_SPEC                        {;}
+               |    VAR LPAR VAR_SPEC SEMICOLON RPAR    {;}
+               ;
+
+VAR_SPEC:   VS_CONT TYPE        {;}
+        ;
+
+VS_CONT:    VS_CONT_CONT ID  {;}
+       |    /*Nothing*/      {;}
+       ;    
+
+VS_CONT_CONT:   VS_CONT_CONT ID COMMA   {;}
+            |   /*Nothing*/             {;}
+            ;
+
+TYPE:   INT     {;}
+    |   FLOAT32 {;}
+    |   BOOL    {;}
+    |   STRNG  {;}
+    ;
+
+FUNC_DECLARATION:   FUNC ID LPAR PARAMETERS RPAR FD_CONT FUNC_BODY  {printf("entered and left func dec\n");}
+                ;
+
+FD_CONT:   TYPE         {;}
+        |   /*Nothing*/ {;}
+        ;
+
+PARAMETERS: P_CONT ID TYPE  {;}
+          | /*Nothing*/     {;}
+          ; 
+
+
+P_CONT: P_CONT ID TYPE COMMA    {;}
+      | /*Nothing*/             {;}
+
+
+FUNC_BODY:  LBRACE VARS_AND_STATEMENTS RBRACE   {printf("entered and left func body\n");}
+         ;
+
+
+VARS_AND_STATEMENTS:    VARS_AND_STATEMENTS VAS_CONT SEMICOLON  {;}
+                   |    /*Nothing*/                             {;}
+                   ;
+
+
+VAS_CONT:   VAR_DECLARATION {;}
+        |   STATEMENT       {;}
+        |   /*Nothing*/     {;}
+        ;
+
+STATEMENT:  ID ASSIGN EXPR                          {;}
+         |  LBRACE ST_CONT RBRACE                   {;}
+         |  IF EXPR LBRACE ST_CONT RBRACE ST2_CONT  {printf("entered and left if\n");}
+         |  FOR MAYBE_EXPR LBRACE ST_CONT RBRACE    {;}
+         |  RETURN MAYBE_EXPR                       {;}
+         |  FUNC_INVOCATION                         {;}
+         |  PARSE_ARGS                              {;}
+         |  PRINT LPAR ST3_CONT RPAR                {;}
+         ;
+
+ST_CONT:    ST_CONT STATEMENT SEMICOLON {;}
+       |    /*Nothing*/                 {;}
+
+ST2_CONT:   ELSE LBRACE ST_CONT RBRACE  {;}
+        |   /*Nothing*/                 {;}
+        ;
+
+ST3_CONT:   EXPR    {;}
+        |   STRLT   {;}
+        ;
+
+MAYBE_EXPR: EXPR        {;}    
+          | /*Nothing*/ {;}
+          ;
+
+
+FUNC_INVOCATION:    ID LPAR MAYBE_EXPRS RPAR {;}
+               ;
+
+MAYBE_EXPRS:    MORE_EXPRS EXPR {;}    
+           |    /*Nothing*/     {;}
+           ;
+
+MORE_EXPRS: MORE_EXPRS EXPR COMMA   {;}
+          | /*Northing*/            {;}
+          ;
+
+PARSE_ARGS: ID COMMA BLANKID ASSIGN PARSEINT LPAR CMDARGS LSQ EXPR RSQ RPAR {;}
+          ;
+
+EXPR:   EXPR COMP EXPR %prec lt_sig {;}
+    |   SIG EXPR %prec i_sig        {;}
+    |   INTLIT                      {;}
+    |   REALLIT                     {;}
+    |   ID                          {;}
+    |   FUNC_INVOCATION             {;}
+    |   LPAR EXPR RPAR              {;}
+    ;
+
+SIG:    MINUS   {;}
+   |    PLUS    {;}
+   |    NOT     {;}
+   ;
+
+COMP:   OR      {;}
+    |   AND     {;}
+    |   LT      {;}
+    |   GT      {;}
+    |   EQ      {;}
+    |   NE      {;}
+    |   LE      {;}
+    |   GE      {;}
+    |   PLUS    {;}
+    |   MINUS   {;}
+    |   STAR    {;}
+    |   DIV     {;}
+    |   MOD     {;}
+    ;
+
+
+%%
+
+void yyerror(char *msg) {
+    printf("%s", msg);
+}
+
+int main(int argc, char *argv[]){
+  if ((argc == 2 && strcmp(argv[1], "-l") == 0)||
+      (argc == 3 && strcmp(argv[2], "-l") == 0)) mayprint = 1;
+  yyparse();
+  //print_program(my_program);
+  return 0;
+}

@@ -22,24 +22,20 @@ valid_escape                    \\[nrft\\\"]
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include "structures.h"
 #include "y.tab.h"
-int line = 1, column = 1, old_column = 1, old_line = 1;
+#include "structures.h"
+int line = 1, column = 1;
 int x = 0, y = 0;
 int lx = 0, ly = 0;
+bool mayprint = false;
 char literal[1000];
 int literalPos = 0;
 bool octalError = false;
 bool literror = false;
-bool mayprint = false;
 
 char* atoupper(char* str){
     for (int i = 0; str[i] != 0; i++) str[i] = toupper(str[i]);
     return str;
-}
-
-FILE* supposed_file(){
-  return yyout;
 }
 
 void validOctal(char n){
@@ -89,8 +85,8 @@ void showStr(char* s){
 %%
                             /* Reserved declared    */
 
-"return"                        {show('r'); old_column = column; column += yyleng; BEGIN SEMICHECK; return RETURN;}
-"package"                       {show('r'); old_column = column; column += yyleng;return PACKAGE;}
+"return"                        {show('r'); column += yyleng; BEGIN SEMICHECK; return RETURN;}
+"package"                       {show('r'); column += yyleng;return PACKAGE;}
 "for"                           {show('r'); column += yyleng;return FOR;}
 "func"                          {show('r'); column += yyleng;return FUNC;}
 "if"                            {show('r'); column += yyleng;return IF;}
@@ -153,19 +149,19 @@ _                               {showStr("BLANKID"); column++;return BLANKID;}
 
                             /*  Numbers and literals    */
 
-{float}                         {show('f'); column += yyleng; yylval.text = strdup(yytext); BEGIN SEMICHECK;return REALLIT;}
-0[xX]{hex}+                     {show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT; yylval.text = strdup(yytext);}
-0[0-7]+                         {show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT; yylval.text = strdup(yytext);}
+{float}                         {show('f'); column += yyleng; BEGIN SEMICHECK;return REALLIT;}
+0[xX]{hex}+                     {show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT;}
+0[0-7]+                         {show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT;}
 0[0-9]*[89]+[0-9]*              {
                                   fprintf(yyout, "Line %d, column %d: invalid octal constant (%s)\n", line, column, yytext);
                                   column += yyleng;
                                 }
 {num}+                          {
-                                  show('i'); column += yyleng; BEGIN SEMICHECK;yylval.text = strdup(yytext);return INTLIT;
+                                  show('i'); column += yyleng; BEGIN SEMICHECK;return INTLIT;
                                 }
-{id}                            show('I'); column += yyleng; BEGIN SEMICHECK;yylval.text = strdup(yytext);return ID;
+{id}                            show('I'); column += yyleng; BEGIN SEMICHECK;return ID;
 {whitespace}                    {column+=yyleng;}
-\n|(\r\n)                       {old_line = line;line++;old_column = column; column = 1;}
+\n|(\r\n)                       {line++;column = 1;}
 .                               {
                                   fprintf(yyout, "Line %d, column %d: illegal character (%c)\n",
                                           line, column, yytext[0]); column += yyleng;
@@ -177,11 +173,10 @@ _                               {showStr("BLANKID"); column++;return BLANKID;}
                                   column++;
                                   addLit(0);
                                   if(!literror){
-                                    BEGIN SEMICHECK;show('s');yylval.text = strdup(literal); 
+                                    BEGIN SEMICHECK;show('s');return STRLT;
                                   }
                                   else BEGIN 0;
                                   literror = false;literalPos = 0;
-                                  if (!literror) return STRLT;
                                 }
 <STRING>\\\n                    {
                                   literror = true;
@@ -211,10 +206,10 @@ _                               {showStr("BLANKID"); column++;return BLANKID;}
                                 /*  Check the need for Semicolons */
 
 <SEMICHECK>{whitespace}         {column++;}
-<SEMICHECK>\/\/                 {show(-1); BEGIN 0; yyless(0); return SEMICOLON;}
+<SEMICHECK>\/\/                 {show(-1); BEGIN 0; yyless(0);}
 <SEMICHECK>\/\*                 {BEGIN IN_COMMENT; x = column, y = line; column += yyleng;}
-<SEMICHECK>\n                   {old_line = line;line++; old_column = column; column = 1; show(-1); BEGIN 0; return SEMICOLON;}
-<SEMICHECK><<EOF>>              {show(-1); BEGIN 0; return SEMICOLON;}
+<SEMICHECK>\n                   {line++; column = 1; show(-1); BEGIN 0;}
+<SEMICHECK><<EOF>>              {show(-1); BEGIN 0;}
 <SEMICHECK>.                    {BEGIN 0; yyless(0);}
 
                                 /*  Comment within Semicolon Check*/
@@ -225,44 +220,23 @@ _                               {showStr("BLANKID"); column++;return BLANKID;}
                                   BEGIN SEMICHECK; yyless(0);
                                 }
 <IN_COMMENT>.                   {column += yyleng;}
-<IN_COMMENT>\n                  {old_line = line;line++; old_column = column; column = 1; show(-1); BEGIN COMMENT; return SEMICOLON;}
+<IN_COMMENT>\n                  {line++; column = 1; show(-1); BEGIN COMMENT;}
 
                                 /* Multiple Line Comment */
 
 <COMMENT>\*\/                   {BEGIN 0; column += yyleng;}
 <COMMENT><<EOF>>                {fprintf(yyout, "Line %d, column %d: unterminated comment\n", y, x); BEGIN 0;}
 <COMMENT>.                      {column += yyleng;}
-<COMMENT>\n                     {old_line = line;line++; old_column = column; column = 1;}
+<COMMENT>\n                     {line++; column = 1;}
 
 %%
 
+int main(int argc, char *argv[]){
+  if (argc == 2 && strcmp(argv[1], "-l") == 0) mayprint = 1;
+  yylex();
+  return 0;
+}
 int yywrap()
 {
 return 1;
-}
-
-void yyerror(char *msg) {
-    int cl = 0;
-    if (old_line == line + 1 && column == 1){
-      if (yytext[0] == '\"'){
-      cl = old_column - (strlen(literal) + 2);
-      printf("Line %d, column %d: %s: \"%s\"\n", old_line, cl > 0? cl : 1, msg, literal);
-      }
-      else {
-        cl = old_column-(int)yyleng;
-        printf("Line %d, column %d: %s: %s\n", old_line, cl > 0? cl : 1, msg, yytext);
-      }
-    }
-    else{
-      if (yytext[0] == '\"'){
-        cl = column - (strlen(literal) + 2);
-        printf("Line %d, column %d: %s: \"%s\"\n", line, cl > 0? cl : 1, msg, literal);
-      }
-      else {
-        cl = column-(int)yyleng;
-        printf("Line %d, column %d: %s: %s\n", line, cl > 0? cl : 1, msg, yytext);
-      }
-    }
-    
-    error_occ = 1;
 }
