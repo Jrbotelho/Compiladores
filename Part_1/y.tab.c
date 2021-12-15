@@ -2274,7 +2274,7 @@ int main(int argc, char *argv[]){
       (argc >= 3 && strcmp(argv[2], "-l") == 0)) mayprint = 1;
   yyparse();
   build_symtab(my_program, NULL, NULL);
-  //print_table();
+  print_table();
   if ((argc >= 2 && strcmp(argv[1], "-t") == 0)||
       (argc >= 3 && strcmp(argv[2], "-t") == 0)) if (!error_occ)print_tree(my_program, NULL, 0, supposed_file());
     print_noted_tree(my_program, NULL, 0, stdout);

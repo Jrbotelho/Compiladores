@@ -89,26 +89,37 @@ char* check_type(node* n){
     for (int i = 0; i < 9; i++)
         if (strcmp(str, bool_arr[i]) == 0) return "bool";
     if (strcmp(str, "Mod") == 0) return "int";
-    char* expr_arr[] = {"Add", "Div", "Mul", "Sub", ""};
+    char* expr_arr[] = {"Add", "Div", "Mul", "Sub"};
     for (int i = 0; i < 4; i++)
         if (strcmp(str, expr_arr[i]) == 0) return highest_priority(n->down);
-    if (check_prefix(str, "Id") == 0){
-        table_el* tmp = var_in_table(str);
+    if (strcmp(str, "Assign") == 0) return check_type(n->down);
+    if (check_prefix(str, "Id")){
+        table_el* tmp = var_in_table(trim_id(str));
         if (tmp != NULL) return tmp->type;
-        return "";
-    } 
-    return "";
+    printf("Cannot find symbol <%s>\n", str);
+        return "unf";
+    }
+    printf("Cannot find symbol <%s>\n", str);
+    return "unf";
+}
+
+bool mark_check(node* root,  node* parent){
+    if (strcmp(parent->val, "VarDecl") == 0 || strcmp(parent->val, "ParamDecl") == 0 || strcmp(parent->val, "FuncHeader") == 0) return false;
+    char* check_list[] = {"IntLit", "RealLit", "StrLit", "Or", "And", "Eq", "Ne", "Lt", "Gt", "Le", "Ge", "Not", "Add", "Div", "Mul", "Sub", "Id", "Assign"};
+    for (int i = 0; i < 18; i++)
+        if (check_prefix(root->val, check_list[i])) return true;
+    return false;
 }
 
 void print_noted_tree(node* root, node* parent, int depth, FILE* out){
     if (root == NULL) return;
     for (int i = 0; i < depth; i++)fprintf(out, "..");
     if (root->val == NULL);
-    else if (parent == NULL) fprintf(out, "%s\n", root->val);
-    else if (strcmp(parent->val, "FuncHeader") == 0 || strcmp(parent->val, "FuncParams") == 0) fprintf(out, "%s - %s\n", root->val, check_type(root));
-    else fprintf(out, "%s\n", root->val);
-    print_tree(root->down, root, depth + 1, out);
-    print_tree(root->next, parent, depth, out);
+    else if (parent == NULL || !mark_check(root, parent)) fprintf(out, "%s\n", root->val);
+    else fprintf(out, "%s - %s\n", root->val, check_type(root));
+    //else fprintf(out, "%s\n", root->val);
+    print_noted_tree(root->down, root, depth + 1, out);
+    print_noted_tree(root->next, parent, depth, out);
 }
 
 void add_vardecl(node* root, node* parent_node, table* parent_tab){

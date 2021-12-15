@@ -32,8 +32,9 @@ table_el* var_in_table(char* name){
     table* tmp = symtab;
     table_el* ret = NULL;
     for (; tmp != NULL; tmp = tmp->next)
-        for(el_list* vars = tmp->val; vars != NULL; vars = vars->next)
+        for(el_list* vars = tmp->val; vars != NULL; vars = vars->next){
             if (strcmp(vars->val->name, name) == 0) return vars->val;
+        }
     return NULL;
 }
 
@@ -72,7 +73,11 @@ table* add_scope(char* scope, int type){
 }
 
 el_list* add_to_scope(table* scope, table_el* val){
-    if (scope == NULL || scope_in_symtab(val->name) || var_in_scope(val->name, scope) || var_in_global(val->name)) return NULL;
+    if (scope == NULL) return NULL;
+    if (scope_in_symtab(val->name) || var_in_scope(val->name, scope) || var_in_global(val->name)){
+        printf("Symbol <%s> already defined\n", scope);
+        return NULL;
+    }
     el_list* ret = (el_list*)malloc(sizeof(el_list));
     if (ret == NULL) return NULL;
     ret->val = val;
