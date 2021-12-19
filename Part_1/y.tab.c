@@ -2271,12 +2271,17 @@ yyreturn:
 
 int main(int argc, char *argv[]){
   if ((argc >= 2 && strcmp(argv[1], "-l") == 0)||
-      (argc >= 3 && strcmp(argv[2], "-l") == 0)) mayprint = 1;
+      (argc >= 3 && strcmp(argv[2], "-l") == 0)|| 
+      (argc >= 4 && strcmp(argv[3], "-l"))) mayprint = 1;
   yyparse();
   build_symtab(my_program, NULL, NULL);
+  build_noted_tree(NULL, my_program, NULL);
   print_table();
   if ((argc >= 2 && strcmp(argv[1], "-t") == 0)||
-      (argc >= 3 && strcmp(argv[2], "-t") == 0)) if (!error_occ)print_tree(my_program, NULL, 0, supposed_file());
-    print_noted_tree(my_program, NULL, 0, stdout);
+      (argc >= 3 && strcmp(argv[2], "-t") == 0)||
+      (argc >= 4 && strcmp(argv[3], "-t"))) if (!error_occ)print_tree(my_program, NULL, 0, supposed_file());
+  if ((argc >= 2 && strcmp(argv[1], "-s") == 0)||
+      (argc >= 3 && strcmp(argv[2], "-s") == 0)||
+      (argc >= 4 && strcmp(argv[3], "-s"))) if (!error_occ) print_noted_tree();
   return 0;
 }

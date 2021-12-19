@@ -1,3 +1,6 @@
+/* João Ricardo Miranda Botelho 2019155348  */
+/* José Pedro Silvério Braz     2017247538  */
+
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
@@ -44,5 +47,7 @@ el_list* add_to_scope(table* scope, table_el* val);
 table* add_scope(char* scope, int type);
 
 table_el* var_in_table(char* name);
+
+char* to_lower(char* a);
 
 #endif

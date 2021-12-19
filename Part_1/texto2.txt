@@ -1,146 +1,124 @@
+===== Global Symbol Table =====
+i		float32
+f		int
+s		bool
+b		string
+main	()	none
+
+==== Function main() Symbol Table =====
+return		none
+i		int
+f		float32
+s		string
+b		bool
+
 Program
+..VarDecl
+....Float32
+....Id(i)
+..VarDecl
+....Int
+....Id(f)
+..VarDecl
+....Bool
+....Id(s)
+..VarDecl
+....String
+....Id(b)
 ..FuncDecl
 ....FuncHeader
-......Id(onefunc)
+......Id(main)
 ......FuncParams
 ....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(twofunc)
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(treefunc)
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-........ParamDecl
-..........Float32
-..........Id(two)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(fourfunc)
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-........ParamDecl
-..........Float32
-..........Id(two)
-........ParamDecl
-..........String
-..........Id(three)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(fivefunc)
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-........ParamDecl
-..........Float32
-..........Id(two)
-........ParamDecl
-..........String
-..........Id(three)
-........ParamDecl
-..........Bool
-..........Id(four)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(sixfunc)
-......Int
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(sevenfunc)
-......Float32
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-........ParamDecl
-..........Float32
-..........Id(two)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(eightfunc)
-......String
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-........ParamDecl
-..........Float32
-..........Id(two)
-........ParamDecl
-..........String
-..........Id(three)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(ninefunc)
-......Bool
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-........ParamDecl
-..........Float32
-..........Id(two)
-........ParamDecl
-..........String
-..........Id(three)
-........ParamDecl
-..........Bool
-..........Id(four)
-....FuncBody
-..FuncDecl
-....FuncHeader
-......Id(tenfunc)
-......Int
-......FuncParams
-........ParamDecl
-..........Int
-..........Id(one)
-....FuncBody
-......VarDecl
-........Float32
-........Id(a)
-......VarDecl
-........Float32
-........Id(b)
-......VarDecl
-........Float32
-........Id(c)
-......VarDecl
-........Float32
-........Id(d)
-......VarDecl
-........Int
-........Id(e)
-......VarDecl
-........Int
-........Id(f)
-......VarDecl
-........Int
-........Id(g)
+......Assign - float32
+........Id(i) - float32
+........RealLit(1.1) - float32
 ......VarDecl
 ........Int
 ........Id(i)
+......Assign - float32
+........Id(i) - float32
+........IntLit(1) - int
 ......VarDecl
-........Int
-........Id(j)
+........Float32
+........Id(f)
+......VarDecl
+........String
+........Id(s)
+......VarDecl
+........Bool
+........Id(b)
+......Assign - string
+........Id(b) - string
+........Ne - bool
+..........Id(i) - float32
+..........Id(i) - float32
+......Assign - string
+........Id(b) - string
+........Eq - bool
+..........Id(f) - int
+..........Id(f) - int
+......Assign - string
+........Id(b) - string
+........And - bool
+..........Id(b) - string
+..........Id(b) - string
+......Assign - string
+........Id(b) - string
+........Eq - bool
+..........Id(b) - string
+..........Id(b) - string
+......Assign - float32
+........Id(i) - float32
+........Add - float32
+..........Id(i) - float32
+..........Id(i) - float32
+......Assign - float32
+........Id(i) - float32
+........Div - float32
+..........Id(i) - float32
+..........Id(i) - float32
+......Assign - int
+........Id(f) - int
+........Mul - int
+..........Id(f) - int
+..........Id(f) - int
+......Assign - int
+........Id(f) - int
+........Sub - int
+..........Id(f) - int
+..........Id(f) - int
+......Assign - float32
+........Id(i) - float32
+........Sub - int
+..........Add - int
+............Mod
+..............Id(i) - float32
+..............Id(i) - float32
+............Mod
+..............Mul - float32
+................Mod
+..................Id(i) - float32
+..................Id(i) - float32
+................Id(i) - float32
+..............Id(i) - float32
+..........Mod
+............Div - float32
+..............Mod
+................Id(i) - float32
+................Id(i) - float32
+..............Id(i) - float32
+............Id(i) - float32
+......Assign - int
+........Id(f) - int
+........Minus
+..........Id(f) - int
+......Assign - int
+........Id(f) - int
+........Plus
+..........Id(f) - int
+......Print
+........Id(s) - bool
+......ParseArgs - int
+........Id(i) - float32
+........IntLit(1) - int

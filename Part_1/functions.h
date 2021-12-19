@@ -21,6 +21,8 @@ int count_depth(node* root);
 
 void build_symtab(node* root, node* parent_node, table* parent_tab);
 
-void print_noted_tree(node* root, node* parent, int depth, FILE* out);
+void print_noted_tree();
+
+void build_noted_tree(node* head, node* root, node* parent);
 
 #endif
